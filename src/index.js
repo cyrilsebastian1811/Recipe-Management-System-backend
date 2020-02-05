@@ -1,6 +1,7 @@
 const dotenv = require("dotenv");
 dotenv.config();
 
+const cors = require("cors");
 const express = require("express");
 const bodyParser = require("body-parser");
 
@@ -36,9 +37,11 @@ const createTables = () => new Promise(async (resolve, reject) => {
 createTables().then(() => {
     app.use(unless([
         { path: "/v1/user", method: "POST" },
-        { path: "/v1/recipe", method: "GET" }
+        { path: "/v1/recipe", method: "GET" },
+        { path: "/v1/allRecipes", method: "GET" },
     ], api.authorizeMiddleware));
 
+    app.use(cors());
     app.use(bodyParser.json());
     app.use(
         bodyParser.urlencoded({
@@ -54,6 +57,7 @@ createTables().then(() => {
     app.put("/v1/user/self",api.updateUserDetails);
 
     app.post("/v1/recipe", api.createRecipe);
+    app.get("/v1/allRecipes", api.getAllRecipes);
     app.get("/v1/recipes", api.getLatestRecipe);
     app.get("/v1/recipe/:id", api.getRecipeDetails);
     app.delete("/v1/recipe/:id", api.deleteRecipe);

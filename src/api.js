@@ -249,7 +249,7 @@ const getLatestRecipe = async (req,res) => {
     const latestRecipe = rows[0];
 
     const {rows: recipeSteps} = await db.getRecipeSteps(latestRecipe.id);
-    const {rows: recipeNutritionInformaiton} = await db.getRecipeNutritionInformation(latestRecipe.id);
+    const {rows: recipeNutritionInformation} = await db.getRecipeNutritionInformation(latestRecipe.id);
 
     res.status(200).send({
         id: latestRecipe.id,
@@ -267,14 +267,42 @@ const getLatestRecipe = async (req,res) => {
             position: item.position,
             items: item.items
         })),
-        nutrition_information: recipeNutritionInformaiton.map(item =>({
+        nutrition_information: recipeNutritionInformation.map(item =>({
             calories: item.calories,
             cholesterol_in_mg: item.cholesterol_in_mg,
             sodium_in_mg: item.sodium_in_mg,
             carbohydrates_in_grams: item.carbohydrates_in_grams,
             protein_in_grams: item.protein_in_grams
-        }))
+        }))[0]
     });
+}
+
+const getAllRecipes = async (req, res) => {
+    const { rows } = await db.getAllRecipes();
+
+    if(lodash.isEmpty(rows) || rows.length <=0 ) return res.sendStatus(404);
+
+    const allRecipes = await Promise.all(rows.map(async recipe => {
+        const {rows: recipeSteps} = await db.getRecipeSteps(recipe.id);
+        const {rows: recipeNutritionInformation} = await db.getRecipeNutritionInformation(recipe.id);
+
+        return {
+            ...recipe,
+            steps: recipeSteps.map(item => ({
+                position: item.position,
+                items: item.items
+            })),
+            nutrition_information: recipeNutritionInformation.map(item =>({
+                calories: item.calories,
+                cholesterol_in_mg: item.cholesterol_in_mg,
+                sodium_in_mg: item.sodium_in_mg,
+                carbohydrates_in_grams: item.carbohydrates_in_grams,
+                protein_in_grams: item.protein_in_grams
+            }))[0]
+        }
+    }));
+
+    res.status(200).send(allRecipes);
 }
 
 const getRecipeDetails = async (req, res) => {
@@ -310,7 +338,7 @@ const getRecipeDetails = async (req, res) => {
             sodium_in_mg: item.sodium_in_mg,
             carbohydrates_in_grams: item.carbohydrates_in_grams,
             protein_in_grams: item.protein_in_grams
-        }))
+        }))[0]
     });
 }
 
@@ -364,7 +392,7 @@ const updateRecipe = async (req, res) => {
     const newCookTime = req.body.cook_time_in_min ? req.body.cook_time_in_min : recipe.cook_time_in_min;
     const newPrepTime = req.body.prep_time_in_min ? req.body.prep_time_in_min : recipe.prep_time_in_min;
     const newTitle = req.body.title ? req.body.title : recipe.title;
-    const newCuisine = req.body.cuisine ? req.body.cusine : recipe.cuisine;
+    const newCuisine = req.body.cuisine ? req.body.cuisine : recipe.cuisine;
     const newServings = req.body.servings ? req.body.servings : recipe.servings;
     const newIngredients = req.body.ingredients ? req.body.ingredients : recipe.ingredients;
 
@@ -458,6 +486,7 @@ module.exports = {
     deleteRecipe,
     updateRecipe,
     getLatestRecipe,
+    getAllRecipes
 };
 
 

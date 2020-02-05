@@ -19,6 +19,7 @@
   "homepage": "https://github.com/Advanced-Cloud-2020/webapp-backend#readme",
   "dependencies": {
     "bcrypt": "^3.0.7",
+    "cors": "^2.8.5",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "joi": "^14.3.1",

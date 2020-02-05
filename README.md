@@ -1,2 +1,14 @@
 # webapp-backend
-This is the back-end for the web application
+This is the backend for the web application developed for CSYE 7374 course. We have used node.js and express.js to create REST API endpoints for a recipe management system. We are using PostgresQL for the database.
+
+In order to run the application, navigate to the src folder and run "node index.js".
+
+If running the application locally, create a .env file at the root of the project with the following variables
+
+WEBAPP_PORT = 
+DB_USER = 
+DB_HOST_NAME = 
+DB_DATABASE_NAME = 
+DB_PASSWORD = 
+DB_PORT =   
+
