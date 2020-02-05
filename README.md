@@ -5,10 +5,10 @@ In order to run the application, navigate to the src folder and run "node index.
 
 If running the application locally, create a .env file at the root of the project with the following variables
 
-WEBAPP_PORT = 
-DB_USER = 
-DB_HOST_NAME = 
-DB_DATABASE_NAME = 
-DB_PASSWORD = 
-DB_PORT =   
+WEBAPP_PORT =<br />
+DB_USER =<br />
+DB_HOST_NAME =<br />
+DB_DATABASE_NAME =<br />
+DB_PASSWORD =<br />
+DB_PORT =<br />
 
