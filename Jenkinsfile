@@ -26,7 +26,6 @@ pipeline {
    }
     stage('Building image') {
       steps{
-
         script {
           def gitCommit = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
           dockerImage = docker.build registry + ":${gitCommit}"
