@@ -14,7 +14,7 @@ pipeline {
                      echo '> Checking out the source control ...'
                      checkout scm
                  }
-             }
+              }
      stage('Cloning Git') {
       steps {
         git branch: 'a4',
