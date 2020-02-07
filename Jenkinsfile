@@ -14,8 +14,6 @@ pipeline {
                  steps {
                      echo '> Checking out the source control ...'
                      checkout scm
-                     sh 'git rev-parse HEAD > commit'
-                     commit = readFile('commit').trim()
 
                  }
               }
@@ -28,8 +26,9 @@ pipeline {
    }
     stage('Building image') {
       steps{
+        sh"echo ${GIT_COMMIT}"
         script {
-          dockerImage = docker.build registry + ": ${commit}"
+          dockerImage = docker.build registry + ":${GIT_COMMIT}"
         }
       }
     }
