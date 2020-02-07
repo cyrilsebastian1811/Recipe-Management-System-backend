@@ -26,9 +26,9 @@ pipeline {
    }
     stage('Building image') {
       steps{
-        sh"echo ${GIT_COMMIT}"
+
         script {
-          dockerImage = docker.build registry + ":${GIT_COMMIT}"
+          dockerImage = docker.build registry + ":${env.GIT_COMMIT}"
         }
       }
     }
