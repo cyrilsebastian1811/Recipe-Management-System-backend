@@ -20,7 +20,7 @@ pipeline {
         git branch: 'a4',
             credentialsId: 'GitToken',
             url: 'https://github.com/puneetneu/webapp-backend.git'
-       }
+        }
    }
     stage('Building image') {
       steps{
