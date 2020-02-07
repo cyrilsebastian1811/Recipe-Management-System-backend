@@ -12,11 +12,7 @@ pipeline {
       stage('Checkout SCM') {
                  steps {
                      echo '> Checking out the source control ...'
-                     
-                     def scmVars = checkout([
-                             $class: 'GitSCM',
-                             ...
-                           ])
+                     def scmVars =checkout scm
                      env.GIT_COMMIT = scmVars.GIT_COMMIT
                  }
               }
