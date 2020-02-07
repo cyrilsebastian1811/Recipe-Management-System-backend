@@ -27,8 +27,8 @@ pipeline {
     stage('Building image') {
       steps{
         script {
-          def gitCommit = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
-          dockerImage = docker.build registry + ":${gitCommit}"
+          env.GIT_COMMIT = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+          dockerImage = docker.build registry + ":${env.GIT_COMMIT}"
         }
       }
     }
@@ -43,7 +43,8 @@ pipeline {
     }
     stage('Remove Unused docker image') {
       steps{
-        sh "docker rmi $registry:${gitCommit}"
+
+        sh "docker rmi $registry:${env.GIT_COMMIT}"
       }
     }
   }
