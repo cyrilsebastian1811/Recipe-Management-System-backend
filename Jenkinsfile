@@ -13,8 +13,9 @@ pipeline {
       stage('Checkout SCM') {
                  steps {
                      echo '> Checking out the source control ...'
-                     echo 'Building Branch: ' + env.BRANCH_NAME
                      checkout scm
+                     sh 'git rev-parse HEAD > commit'
+                     def commit = readFile('commit').trim()
 
                  }
               }
@@ -28,7 +29,7 @@ pipeline {
     stage('Building image') {
       steps{
         script {
-          dockerImage = docker.build registry + ": ${env.GIT_COMMIT.take(7)}"
+          dockerImage = docker.build registry + ": ${commit}"
         }
       }
     }
