@@ -5,6 +5,9 @@ pipeline {
     dockerImage=''
   }
   agent any
+  options {
+          skipDefaultCheckout(true)
+      }
   stages {
       stage('Checkout SCM') {
                  steps {
