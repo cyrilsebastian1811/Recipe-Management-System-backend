@@ -14,8 +14,8 @@ pipeline {
                  steps {
                      echo '> Checking out the source control ...'
                      echo 'Building Branch: ' + env.BRANCH_NAME
-                     commit = checkout scm
-                     echo '${commit}'
+                     checkout scm
+
                  }
               }
      stage('Cloning Git') {
