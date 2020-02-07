@@ -3,6 +3,7 @@ pipeline {
     registry = "puneet2020/webapp-backend"
     registryCredential = 'dockerhub'
     dockerImage=''
+    commit=''
   }
   agent any
   options {
@@ -12,8 +13,8 @@ pipeline {
       stage('Checkout SCM') {
                  steps {
                      echo '> Checking out the source control ...'
-                     def scmVars =checkout scm
-                     env.GIT_COMMIT = scmVars.GIT_COMMIT
+                     commit =checkout scm
+                     echo '${commit}'
                  }
               }
      stage('Cloning Git') {
