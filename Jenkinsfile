@@ -15,7 +15,7 @@ pipeline {
                      echo '> Checking out the source control ...'
                      checkout scm
                      sh 'git rev-parse HEAD > commit'
-                     echo 'readFile('commit').trim()'
+                     commit = readFile('commit').trim()
 
                  }
               }
