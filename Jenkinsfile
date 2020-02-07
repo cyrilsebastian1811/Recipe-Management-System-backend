@@ -13,7 +13,8 @@ pipeline {
       stage('Checkout SCM') {
                  steps {
                      echo '> Checking out the source control ...'
-                     commit =checkout scm
+                     echo 'Building Branch: ' + env.BRANCH_NAME
+                     commit = checkout scm
                      echo '${commit}'
                  }
               }
