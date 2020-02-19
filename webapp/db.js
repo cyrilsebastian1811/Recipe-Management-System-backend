@@ -23,6 +23,9 @@ const createTableIfNotExists = async (tableName) => {
             case "nutrition_information":
                 await pool.query("CREATE TABLE public.nutrition_information (id uuid PRIMARY KEY, calories integer, cholesterol_in_mg float, sodium_in_mg integer, carbohydrates_in_grams float, protein_in_grams float, recipe_id uuid, FOREIGN KEY (recipe_id) REFERENCES public.recipe(id))");
                 break;
+            case "recipe_image":
+                await pool.query("create table public.recipe_image (id uuid primary key,recipe_id uuid,url varchar, md5 varchar, size int, foreign key (recipe_id) references public.recipe(id))");
+                break;
             default:
                 console.log("No such table required by the app");
         }
@@ -191,6 +194,36 @@ const updateRecipeNutritionInformation = async(newNutrition_information, recipeI
     return res;
 }
 
+const saveImageForRecipe = async (imageInput) => {
+    return await pool.query("INSERT INTO public.recipe_image (id,recipe_id,url,md5,size) VALUES ($1,$2,$3,$4,$5)", [
+        imageInput.id,
+        imageInput.recipeId,
+        imageInput.imageUrl,
+        imageInput.md5,
+        imageInput.size,
+    ]);
+}
+
+const getAllImagesForRecipe = async (recipeId) => {
+    return await pool.query("SELECT * FROM public.recipe_image WHERE recipe_id=$1", [
+        recipeId,
+    ]);
+}
+
+const getRecipeImage = async (recipeId, imageId) => {
+    return await pool.query("SELECT * FROM public.recipe_image WHERE recipe_id=$1 AND id=$2", [
+        recipeId,
+        imageId,
+    ]);
+}
+
+const deleteRecipeImage = async (recipeId, imageId) => {
+    return await pool.query("DELETE FROM public.recipe_image WHERE recipe_id=$1 AND id=$2", [
+        recipeId,
+        imageId,
+    ]);
+}
+
 module.exports = {
     getAllEmail,
     createUser,
@@ -208,4 +241,8 @@ module.exports = {
     updateRecipeNutritionInformation,
     createTableIfNotExists,
     getAllRecipes,
+    saveImageForRecipe,
+    getAllImagesForRecipe,
+    getRecipeImage,
+    deleteRecipeImage
 }
