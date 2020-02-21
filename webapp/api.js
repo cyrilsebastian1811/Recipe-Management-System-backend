@@ -99,13 +99,9 @@ const createUser = async (request, response) => {
 }
 
 const getUserDetails = async (req, res) => {
-    client.increment('get_user_details');
-    logger.info(`get user details for ${res.locals.email}`);
     const email = res.locals.email;
 
     const {rows: [user]} = await db.getUserDetails(email);
-
-    logger.info(`fetched user details ${JSON.stringify(user)}`);
 
     res.status(200).send({
         id: user.id,
