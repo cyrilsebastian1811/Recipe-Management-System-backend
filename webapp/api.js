@@ -2,9 +2,11 @@ const uuid = require("uuid");
 const bcrypt = require("bcrypt");
 const Joi = require('joi');
 const lodash = require('lodash');
+const formidable = require('formidable');
 const saltRounds = 10;
 
 const db = require("./db");
+const s3 = require("./s3");
 
 const checkPassword = (password) => {
     if(password.length <= 8) return false;
@@ -97,13 +99,9 @@ const createUser = async (request, response) => {
 }
 
 const getUserDetails = async (req, res) => {
-    client.increment('get_user_details');
-    logger.info(`get user details for ${res.locals.email}`);
     const email = res.locals.email;
 
     const {rows: [user]} = await db.getUserDetails(email);
-
-    logger.info(`fetched user details ${JSON.stringify(user)}`);
 
     res.status(200).send({
         id: user.id,
@@ -311,6 +309,7 @@ const getRecipeDetails = async (req, res) => {
     const {rows: recipeDetails} = await db.getRecipeDetails(id);
     const {rows: recipeSteps} = await db.getRecipeSteps(id);
     const {rows: recipeNutritionInformaiton} = await db.getRecipeNutritionInformation(id);
+    const {rows: imageDetails} = await db.getAllImagesForRecipe(id);
 
     if(lodash.isEmpty(recipeDetails)) return res.sendStatus(404);
 
@@ -318,6 +317,10 @@ const getRecipeDetails = async (req, res) => {
 
     res.status(200).send({
         id: recipe.id,
+        image: !lodash.isEmpty(imageDetails) && imageDetails.length > 0 ? {
+            id: imageDetails[imageDetails.length -1].id,
+            url: imageDetails[imageDetails.length -1].url,
+        } : null,
         created_ts: recipe.created_ts,
         updated_ts: recipe.updated_ts,
         author_id: recipe.author_id,
@@ -476,6 +479,91 @@ const deleteRecipe = async (req, res) => {
     res.sendStatus(204);
 }
 
+const createImage = async (req, res) => {
+    const email = res.locals.email;
+    const recipeId = req.params.id;
+
+    const {rows: [user]} = await db.getUserDetails(email);
+    const {rows: recipeDetails} = await db.getRecipeDetails(recipeId);
+
+    if(lodash.isEmpty(recipeDetails)) return res.status(400).json("Recipe not found");
+
+    const [recipe] = recipeDetails;
+
+    if(recipe.author_id !== user.id) return res.status(400).json("User is not the author of this recipe");
+
+    new formidable.IncomingForm().parse(req, async (err, fields, files) => {
+        if (err) {
+            console.error('Error', err)
+            throw err
+        }
+
+        for (const [key, file] of Object.entries(files)) {
+            if(!(file.type === "image/jpeg" || file.type === "image/png")) return res.status(400).json("Uploaded file must be in jpeg or png format.")
+
+            const fileSize = file.size;
+
+            const s3Data = await s3.uploadFile(file);
+            const imageInput = {
+                id: uuid(),
+                imageUrl: s3Data.Location,
+                recipeId,
+                md5: s3Data.ETag,
+                size: fileSize,
+            }
+            try {
+                await db.saveImageForRecipe(imageInput);
+                res.status(201).json({
+                    id: imageInput.id,
+                    url: s3Data.Location,
+                });
+            }  catch(err) {
+                console.error(err);
+                return res.status(400).json(err);
+            }
+        }
+    })
+}
+
+const getImage = async (req, res) => {
+    const recipeId = req.params.recipeId;
+    const imageId = req.params.imageId;
+
+    const {rows} = await db.getRecipeImage(recipeId, imageId);
+    if(lodash.isEmpty(rows)) return res.status(404).json("Not Found");
+
+    const [image] = rows;
+    return res.status(200).json({
+        id: image.id,
+        url: image.url,
+    });
+}
+
+const deleteRecipeImage = async (req,res) => {
+    const recipeId = req.params.recipeId;
+    const imageId = req.params.imageId;
+
+    const {rows} = await db.getRecipeImage(recipeId, imageId);
+    if(lodash.isEmpty(rows)) return res.status(404).json("Not Found");
+
+    const [imageDetails] = rows;
+
+    const urlPath = imageDetails.url.split("/");
+    const s3Key = urlPath[urlPath.length - 1];
+
+    try {
+        const data = await s3.deleteFile(s3Key);
+        // console.log(data);
+
+        await db.deleteRecipeImage(recipeId, imageId);
+
+        return res.status(204).json("No Content");
+    } catch (err) {
+        console.log(err);
+        return res.status(400).json("Bad Request");
+    }
+}
+
 module.exports = {
     authorizeMiddleware,
     createUser,
@@ -486,7 +574,10 @@ module.exports = {
     deleteRecipe,
     updateRecipe,
     getLatestRecipe,
-    getAllRecipes
+    getAllRecipes,
+    createImage,
+    deleteRecipeImage,
+    getImage,
 };
 
 
