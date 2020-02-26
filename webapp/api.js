@@ -3,10 +3,27 @@ const bcrypt = require("bcrypt");
 const Joi = require('joi');
 const lodash = require('lodash');
 const formidable = require('formidable');
+const redis = require("redis");
+const { promisify } = require("util");
 const saltRounds = 10;
 
 const db = require("./db");
 const s3 = require("./s3");
+
+const redisClient = redis.createClient({
+    host: process.env.REDIS_HOST,
+    port: process.env.REDIS_PORT,
+    password: process.env.REDIS_PASSWORD
+});
+
+const setRedisAsync = promisify(redisClient.set).bind(redisClient);
+const getRedisAsync = promisify(redisClient.get).bind(redisClient);
+const delRedisAsync = promisify(redisClient.del).bind(redisClient);
+
+
+redisClient.on("error", (err) => {
+    console.log(err);
+});
 
 const checkPassword = (password) => {
     if(password.length <= 8) return false;
@@ -205,7 +222,7 @@ const createRecipe = async (req, res) => {
             cuisine: req.body.cuisine,
             servings: req.body.servings,
             ingredients: req.body.ingredients,
-        };
+        }
 
         await db.createRecipe(recipeInput);
 
@@ -227,6 +244,13 @@ const createRecipe = async (req, res) => {
         };
 
         await db.createRecipeNutritionInformation(nutritionInput);
+
+        // add to redis cache for 10 minutes
+        await setRedisAsync(recipeInput.id, JSON.stringify({
+            ...recipeInput,
+            steps: req.body.steps,
+            nutrition_information: req.body.nutrition_information
+        }), "EX", 60 * 10);
 
         res.status(201).send({
             ...recipeInput,
@@ -306,21 +330,30 @@ const getAllRecipes = async (req, res) => {
 const getRecipeDetails = async (req, res) => {
     const id = req.params.id;
 
+    const cachedRecipe = await getRedisAsync(id);
+    const {rows: imageDetails} = await db.getAllImagesForRecipe(id);
+    if(cachedRecipe !== null) {
+        const responseObject = JSON.parse(cachedRecipe);
+        return res.status(200).send({
+            id: id,
+            image: !lodash.isEmpty(imageDetails) && imageDetails.length > 0 ? {
+                id: imageDetails[imageDetails.length -1].id,
+                url: imageDetails[imageDetails.length -1].url,
+            } : null,
+            ...responseObject
+        });
+    }
+
     const {rows: recipeDetails} = await db.getRecipeDetails(id);
     const {rows: recipeSteps} = await db.getRecipeSteps(id);
-    const {rows: recipeNutritionInformaiton} = await db.getRecipeNutritionInformation(id);
-    const {rows: imageDetails} = await db.getAllImagesForRecipe(id);
+    const {rows: recipeNutritionInformation} = await db.getRecipeNutritionInformation(id);
 
     if(lodash.isEmpty(recipeDetails)) return res.sendStatus(404);
 
     const recipe = recipeDetails[0];
 
-    res.status(200).send({
+    const recipeObject = {
         id: recipe.id,
-        image: !lodash.isEmpty(imageDetails) && imageDetails.length > 0 ? {
-            id: imageDetails[imageDetails.length -1].id,
-            url: imageDetails[imageDetails.length -1].url,
-        } : null,
         created_ts: recipe.created_ts,
         updated_ts: recipe.updated_ts,
         author_id: recipe.author_id,
@@ -335,13 +368,26 @@ const getRecipeDetails = async (req, res) => {
             position: item.position,
             items: item.items
         })),
-        nutrition_information: recipeNutritionInformaiton.map(item =>({
+        nutrition_information: recipeNutritionInformation.map(item =>({
             calories: item.calories,
             cholesterol_in_mg: item.cholesterol_in_mg,
             sodium_in_mg: item.sodium_in_mg,
             carbohydrates_in_grams: item.carbohydrates_in_grams,
             protein_in_grams: item.protein_in_grams
         }))[0]
+    };
+
+    if(cachedRecipe == null) {
+        await setRedisAsync(id, JSON.stringify(recipeObject), "EX", 60 * 10);
+    }
+
+
+    res.status(200).send({
+        image: !lodash.isEmpty(imageDetails) && imageDetails.length > 0 ? {
+            id: imageDetails[imageDetails.length -1].id,
+            url: imageDetails[imageDetails.length -1].url,
+        } : null,
+        ...recipeObject
     });
 }
 
@@ -390,6 +436,9 @@ const updateRecipe = async (req, res) => {
 
     if(validationResult.error) return res.status(400).json(validationResult.error.details[0].message);
 
+    // delete key if present in the cache
+    await delRedisAsync(id);
+
     const now = new Date();
     const recipe = recipeDetails[0];
     const newCookTime = req.body.cook_time_in_min ? req.body.cook_time_in_min : recipe.cook_time_in_min;
@@ -436,14 +485,19 @@ const updateRecipe = async (req, res) => {
     const {rows: recipeSteps} = await db.getRecipeSteps(id);
     const {rows: [nutritionInformation]} = await db.getRecipeNutritionInformation(id);
 
-    res.status(200).send({
+    const updatedRecipeObject = {
         ...updatedRecipe,
         steps: recipeSteps.map(step => ({
             items: step.items,
             position: step.position
         })),
         nutritionInformation: nutritionInformation
-    });
+    };
+
+    // set cache with the updated recipe
+    setRedisAsync(id, JSON.stringify(updatedRecipeObject), "EX", 60 * 10);
+
+    res.status(200).send(updatedRecipeObject);
 }
 
 const deleteRecipe = async (req, res) => {
@@ -461,6 +515,8 @@ const deleteRecipe = async (req, res) => {
     if(user.id !== recipeDetails[0].author_id) return res.sendStatus(401);
 
     try {
+        await delRedisAsync(recipeId);
+
         await db.deleteRecipe(recipeId);
 
         if(!lodash.isEmpty(imageDetails) && imageDetails.length > 0) {
