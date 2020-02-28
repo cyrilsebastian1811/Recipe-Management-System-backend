@@ -14,12 +14,24 @@ In order to run the application, navigate to the webapp folder and run "node ind
 
 If running the application locally, create a .env file at the root of the project with the following variables
 
+ENVIRONMENT = development
+
 WEBAPP_PORT =<br />
 DB_USER =<br />
 DB_HOST_NAME =<br />
 DB_DATABASE_NAME =<br />
 DB_PASSWORD =<br />
 DB_PORT =<br />
+
+S3_BUCKET =<br />
+AWS_ACCESS_KEY_ID =<br />
+AWS_SECRET_ACCESS_KEY =<br />
+
+REDIS_HOST = 127.0.0.1
+REDIS_PORT = 6379
+REDIS_PASSWORD =<br />
+
+SENTINEL_PORT = 26379
 
 # Docker hub and jenkins setup
 1. Create a private repository in dockerhub for webapp-backend images
