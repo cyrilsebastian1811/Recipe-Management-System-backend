@@ -17,9 +17,15 @@ pipeline {
     stage('Cloning WEBAPP-BACKEND') {
       steps {
         script {
+          echo "${GIT_BRANCH}"
+          echo "${GIT_URL}"
           git_info = git branch: "${GIT_BRANCH}", credentialsId: "github-ssh", url: "${GIT_URL}"
+          sh "ls"
           git_hash = "${git_info.GIT_COMMIT[0..6]}"
           image_name = "${DOCKERHUB_CREDENTIALS_USR}/backend"
+
+          echo "${git_hash}"
+          echo "${image_name}"
         }
       }
     }
