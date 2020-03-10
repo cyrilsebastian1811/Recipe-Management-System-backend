@@ -33,7 +33,6 @@ DB_PORT =<br />
 5. You can also manually build the project with parameters.
 
 
-
 ### Jenkns Plugins to be Installed
 1. GitHub Integration
 2. Kubernetes CLI
