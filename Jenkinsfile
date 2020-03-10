@@ -5,6 +5,7 @@ pipeline {
     DOCKERHUB_CREDENTIALS = credentials('dockerhub_credentials')
     HELM_CHART_GIT_URL = "${env.HELM_CHART_GIT_URL}"
     HELM_CHART_GIT_BRANCH = "${env.HELM_CHART_GIT_BRANCH}"
+    REPOSITORY_NAME = "${env.REPOSITORY_NAME}"
     image_name = null
     git_hash = null
     image = null
@@ -22,7 +23,7 @@ pipeline {
 
           git_info = git branch: "${GIT_BRANCH}", credentialsId: "github-ssh", url: "${GIT_URL}"
           git_hash = "${git_info.GIT_COMMIT[0..6]}"
-          image_name = "${DOCKERHUB_CREDENTIALS_USR}/backend"
+          image_name = "${DOCKERHUB_CREDENTIALS_USR}/${REPOSITORY_NAME}"
 
           echo "${git_hash}"
           echo "${image_name}"
