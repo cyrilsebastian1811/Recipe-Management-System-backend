@@ -4,7 +4,7 @@ pipeline {
     GIT_BRANCH = "${env.GIT_BRANCH}"
     DOCKERHUB_CREDENTIALS = credentials('dockerhub_credentials')
     HELM_CHART_GIT_URL = "${env.HELM_CHART_GIT_URL}"
-    HELM_CHART_REPO_BRANCH = "${env.HELM_CHART_REPO_BRANCH}"
+    HELM_CHART_GIT_BRANCH = "${env.HELM_CHART_GIT_BRANCH}"
     image_name = null
     git_hash = null
     image = null
@@ -51,18 +51,18 @@ pipeline {
     stage('Checkout Helm-Charts') { 
       steps {
         script {
-          git_info = git branch: "${HELM_CHART_REPO_BRANCH}", credentialsId: 'github-ssh', url: "${HELM_CHART_GIT_URL}"
+          git_info = git branch: "${HELM_CHART_GIT_BRANCH}", credentialsId: 'github-ssh', url: "${HELM_CHART_GIT_URL}"
         }
       }
     }
 
     stage('Helm-Charts update') { 
       steps {
-        // sh "ls"
-        // sh "pwd"
-        // echo "${BUILD_NUMBER}"
-        // sh "git checkout ${HELM_CHART_REPO_BRANCH}"
-        // sh "git branch"
+        sh "ls"
+        sh "pwd"
+        echo "${BUILD_NUMBER}"
+        sh "git checkout ${HELM_CHART_GIT_BRANCH}"
+        sh "git branch"
 
         sh "yq r webapp-backend/Chart.yaml version"
         sh "yq w -i webapp-backend/Chart.yaml 'version' 0.1.${BUILD_NUMBER}"
@@ -72,7 +72,7 @@ pipeline {
         
         sh "git commit -am 'version upgrade to 0.1.${BUILD_NUMBER} by jenkins'"
         sshagent (credentials: ['github-ssh']) {
-            sh("git push origin ${HELM_CHART_REPO_BRANCH}")
+            sh("git push origin ${HELM_CHART_GIT_BRANCH}")
         }
       }
     }
