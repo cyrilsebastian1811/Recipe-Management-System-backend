@@ -19,8 +19,8 @@ pipeline {
         script {
           echo "${GIT_BRANCH}"
           echo "${GIT_URL}"
+
           git_info = git branch: "${GIT_BRANCH}", credentialsId: "github-ssh", url: "${GIT_URL}"
-          sh "ls"
           git_hash = "${git_info.GIT_COMMIT[0..6]}"
           image_name = "${DOCKERHUB_CREDENTIALS_USR}/backend"
 
@@ -64,11 +64,11 @@ pipeline {
 
     stage('Helm-Charts update') { 
       steps {
-        sh "ls"
-        sh "pwd"
-        echo "${BUILD_NUMBER}"
-        sh "git checkout ${HELM_CHART_GIT_BRANCH}"
-        sh "git branch"
+        // sh "ls"
+        // sh "pwd"
+        // echo "${BUILD_NUMBER}"
+        // sh "git checkout ${HELM_CHART_GIT_BRANCH}"
+        // sh "git branch"
 
         sh "yq r webapp-backend/Chart.yaml version"
         sh "yq w -i webapp-backend/Chart.yaml 'version' 0.1.${BUILD_NUMBER}"
