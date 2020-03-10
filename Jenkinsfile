@@ -64,11 +64,11 @@ pipeline {
 
     stage('Helm-Charts update') { 
       steps {
-        // sh "ls"
-        // sh "pwd"
-        // echo "${BUILD_NUMBER}"
-        // sh "git checkout ${HELM_CHART_GIT_BRANCH}"
-        // sh "git branch"
+        sh "ls"
+        sh "pwd"
+        echo "${BUILD_NUMBER}"
+        sh "git checkout ${HELM_CHART_GIT_BRANCH}"
+        sh "git branch"
 
         sh "yq r webapp-backend/Chart.yaml version"
         sh "yq w -i webapp-backend/Chart.yaml 'version' 0.1.${BUILD_NUMBER}"
