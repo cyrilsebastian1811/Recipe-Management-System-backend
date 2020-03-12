@@ -10,11 +10,13 @@ pipeline {
     image_name = null
     git_hash = null
     image = null
+    git_message = null
   }
   agent any
   options {
     skipDefaultCheckout(true)
   }
+  
   stages {
     stage('Cloning WEBAPP-BACKEND') {
       steps {
@@ -25,9 +27,11 @@ pipeline {
 
           git_info = git branch: "${GIT_BRANCH}", credentialsId: "GitToken", url: "${GIT_URL}"
           git_hash = "${git_info.GIT_COMMIT[0..6]}"
+          git_message = sh(returnStdout: true, script: "git log -n 1 ${git_info.GIT_COMMIT}")
           image_name = "${DOCKERHUB_CREDENTIALS_USR}/${REPOSITORY_NAME}"
 
           echo "${git_hash}"
+          echo "${git_message}"
           echo "${image_name}"
         }
       }
@@ -73,7 +77,7 @@ pipeline {
         sh "git checkout ${HELM_CHART_GIT_BRANCH}"
         sh "git branch"
 
-        sh "yq r webapp-backend/Chart.yaml version"
+        def latestVersion = sh returnStdout: true, script: "yq r webapp-backend/Chart.yaml version"
         sh "yq w -i webapp-backend/Chart.yaml 'version' 0.1.${BUILD_NUMBER}"
         sh "yq r webapp-backend/Chart.yaml version"
         sh "yq w -i webapp-backend/values.yaml 'dockerImage' ${image_name}:${git_hash}"
@@ -91,4 +95,22 @@ pipeline {
       }
     }
   }
+}
+
+def nextVersionFromGit(scope) {
+  def latestVersion = sh returnStdout: true, script: 'yq read ../helm-charts/helm-backend/Chart.yaml version'
+  def (major, minor, patch) = latestVersion.tokenize('.').collect { it.toInteger() }
+  def nextVersion
+  switch (scope) {
+    case 'major':
+        nextVersion = "${major + 1}.0.0"
+        break
+    case 'minor':
+        nextVersion = "${major}.${minor + 1}.0"
+        break
+    case 'patch':
+        nextVersion = "${major}.${minor}.${patch + 1}"
+        break
+  }
+  nextVersion
 }
