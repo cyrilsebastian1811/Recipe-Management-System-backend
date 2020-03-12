@@ -218,7 +218,7 @@ node {
 
       sh "yq w -i webapp-backend/Chart.yaml 'version' ${nextVersion}"
       sh "yq r webapp-backend/Chart.yaml version"
-      sh "yq w -i webapp-backend/values.yaml 'dockerImage' ${image_name}:${git_hash}"
+      sh "yq w -i webapp-backend/values.yaml 'dockerImage' ${REPOSITORY}:${git_hash}"
       sh "yq w -i webapp-backend/values.yaml 'imageCredentials.registry' https://index.docker.io/v1/"
 
       withCredentials([usernamePassword(credentialsId: 'GitToken')]){
