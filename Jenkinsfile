@@ -3,6 +3,7 @@ pipeline {
     GIT_URL = "${env.GIT_URL}"
     GIT_BRANCH = "${env.GIT_BRANCH}"
     DOCKERHUB_CREDENTIALS = credentials('dockerhub_credentials')
+    GIT_CREDENTIALS = credentials('GitToken')
     HELM_CHART_GIT_URL = "${env.HELM_CHART_GIT_URL}"
     HELM_CHART_GIT_BRANCH = "${env.HELM_CHART_GIT_BRANCH}"
     REPOSITORY_NAME = "${env.REPOSITORY_NAME}"
@@ -22,7 +23,7 @@ pipeline {
           echo "${GIT_URL}"
           sh("git config user.name")
 
-          git_info = git branch: "${GIT_BRANCH}", credentialsId: "github-ssh", url: "${GIT_URL}"
+          git_info = git branch: "${GIT_BRANCH}", credentialsId: "GitToken", url: "${GIT_URL}"
           git_hash = "${git_info.GIT_COMMIT[0..6]}"
           image_name = "${DOCKERHUB_CREDENTIALS_USR}/${REPOSITORY_NAME}"
 
@@ -59,7 +60,7 @@ pipeline {
     stage('Checkout Helm-Charts') { 
       steps {
         script {
-          git_info = git branch: "${HELM_CHART_GIT_BRANCH}", credentialsId: 'github-ssh', url: "${HELM_CHART_GIT_URL}"
+          git_info = git branch: "${HELM_CHART_GIT_BRANCH}", credentialsId: 'GitToken', url: "${HELM_CHART_GIT_URL}"
         }
       }
     }
@@ -80,10 +81,12 @@ pipeline {
         sh "git commit -am 'version upgrade to 0.1.${BUILD_NUMBER} by jenkins'"
 
 
-        sh("git config user.name")
-        sshagent (credentials: ['github-ssh']) {
-          sh("git push origin ${HELM_CHART_GIT_BRANCH}")
+        withCredentials([usernamePassword(credentialsId: 'GitToken', usernameVariable: "${GITHUB_CREDENTIALS_USR}", passwordVariable: "${GITHUB_CREDENTIALS_PSW}")]){
+          sh("git config user.name")
         }
+        // sshagent (credentials: ['github-ssh']) {
+        //   sh("git push origin ${HELM_CHART_GIT_BRANCH}")
+        // }
       }
     }
   }
