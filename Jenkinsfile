@@ -89,8 +89,6 @@ pipeline {
           def (major, minor, patch) = presentVersion.tokenize('.').collect { it.toInteger() }
           echo "major: $major, minor: $minor, patch: $patch"
           def nextVersion = null
-          echo "$scope a"
-          println scope.getClass()
           switch ("$scope") {
             case "major":
                 nextVersion = "${major + 1}.0.0"
@@ -110,6 +108,7 @@ pipeline {
 
           withCredentials([usernamePassword(credentialsId: 'GitToken', usernameVariable: "${GIT_CREDENTIALS_USR}", passwordVariable: "${GIT_CREDENTIALS_PSW}")]){
             sh("git config user.name")
+            sh("git push origin ${HELM_CHART_GIT_BRANCH}")
           }
           // sshagent (credentials: ['github-ssh']) {
           //   sh("git push origin ${HELM_CHART_GIT_BRANCH}")
