@@ -88,17 +88,17 @@ pipeline {
           def (major, minor, patch) = presentVersion.tokenize('.').collect { it.toInteger() }
           echo "major: $major, minor: $minor, patch: $patch"
           def nextVersion = null
-          echo "$scope"
+          echo "$scope a"
+          println scope.getClass()
           switch ("$scope") {
-            case 'major':
+            case "major":
                 nextVersion = "${major + 1}.0.0"
                 break
-            case 'minor':
+            case "minor":
                 nextVersion = "${major}.${minor + 1}.0"
                 break
-            case 'patch':
+            case "patch":
                 nextVersion = "${major}.${minor}.${patch + 1}"
-                break
           }
 
           sh "yq w -i webapp-backend/Chart.yaml 'version' ${nextVersion}"
