@@ -84,12 +84,26 @@ pipeline {
           sh "git checkout ${HELM_CHART_GIT_BRANCH}"
           sh "git branch"
 
-          def latestVersion = sh(returnStdout: true, script: "yq r webapp-backend/Chart.yaml version")
-          sh "yq w -i webapp-backend/Chart.yaml 'version' 0.1.${BUILD_NUMBER}"
+          def presentVersion = sh(returnStdout: true, script: "yq r webapp-backend/Chart.yaml version")
+          def (major, minor, patch) = presentVersion.tokenize('.').collect { it.toInteger() }
+          def nextVersion
+          switch (scope) {
+            case 'major':
+                nextVersion = "${major + 1}.0.0"
+                break
+            case 'minor':
+                nextVersion = "${major}.${minor + 1}.0"
+                break
+            case 'patch':
+                nextVersion = "${major}.${minor}.${patch + 1}"
+                break
+          }
+
+          sh "yq w -i webapp-backend/Chart.yaml 'version' ${nextVersion}"
           sh "yq r webapp-backend/Chart.yaml version"
           sh "yq w -i webapp-backend/values.yaml 'dockerImage' ${image_name}:${git_hash}"
           sh "yq w -i webapp-backend/values.yaml 'imageCredentials.registry' https://index.docker.io/v1/"
-          sh "git commit -am 'version upgrade to 0.1.${BUILD_NUMBER} by jenkins'"
+          sh "git commit -am 'version upgrade to ${nextVersion} by jenkins'"
 
           withCredentials([usernamePassword(credentialsId: 'GitToken', usernameVariable: "${GIT_CREDENTIALS_USR}", passwordVariable: "${GIT_CREDENTIALS_PSW}")]){
             sh("git config user.name")
