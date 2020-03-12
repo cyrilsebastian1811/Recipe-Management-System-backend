@@ -11,6 +11,7 @@ pipeline {
     git_hash = null
     image = null
     git_message = null
+    scope = null
   }
   agent any
   options {
@@ -33,7 +34,8 @@ pipeline {
           echo "${git_hash}"
           echo "${git_message}"
           echo "${image_name}"
-          echo `expr "$git_message" : '*(major|minor|patch)*'`
+          scope = sh(returnStdout: true, script: "echo \`expr "$git_message" : '*(major|minor|patch)*'\`")
+          echo "${scope}"
         }
       }
     }
