@@ -32,9 +32,9 @@ pipeline {
           image_name = "${DOCKERHUB_CREDENTIALS_USR}/${REPOSITORY_NAME}"
 
           echo "${git_hash}"
-          echo "${git_message}"
           echo "${image_name}"
           
+          echo "${git_message}"
           scope = sh(returnStdout: true, script: "(echo \"$git_message\" | grep -Eq  ^.*major.*) && echo \"major\" || echo \"minor\"")
           scope = sh(returnStdout: true, script: "(echo \"$git_message\" | grep -Eq  ^.*minor.*) && echo \"minor\" || echo \"${scope}\"")
           scope = sh(returnStdout: true, script: "(echo \"$git_message\" | grep -Eq  ^.*patch.*) && echo \"patch\" || echo \"${scope}\"")
