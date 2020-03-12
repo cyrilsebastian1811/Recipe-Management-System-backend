@@ -79,6 +79,7 @@ pipeline {
         sh "git commit -am 'version upgrade to 0.1.${BUILD_NUMBER} by jenkins'"
 
         sh("git config user.name Jenkins")
+        sh("git config user.name")
         sshagent (credentials: ['github-ssh']) {
           sh("git push origin ${HELM_CHART_GIT_BRANCH}")
         }
