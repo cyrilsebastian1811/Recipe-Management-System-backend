@@ -77,7 +77,7 @@ pipeline {
         sh "yq w -i webapp-backend/values.yaml 'dockerImage' ${image_name}:${git_hash}"
         sh "yq w -i webapp-backend/values.yaml 'imageCredentials.registry' https://index.docker.io/v1/"
         sh "git commit -am 'version upgrade to 0.1.${BUILD_NUMBER} by jenkins'"
-        sh "git remote -v"
+        // sh "git remote -v"
         sshagent (credentials: ['github-ssh']) {
             sh("git push origin ${HELM_CHART_GIT_BRANCH}")
         }
