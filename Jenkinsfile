@@ -33,6 +33,7 @@ pipeline {
           echo "${git_hash}"
           echo "${git_message}"
           echo "${image_name}"
+          echo `expr "$git_message" : '*(major|minor|patch)*'`
         }
       }
     }
