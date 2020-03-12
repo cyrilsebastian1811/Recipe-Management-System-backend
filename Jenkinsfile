@@ -108,6 +108,7 @@ pipeline {
 
           withCredentials([usernamePassword(credentialsId: 'GitToken', usernameVariable: "${GIT_CREDENTIALS_USR}", passwordVariable: "${GIT_CREDENTIALS_PSW}")]){
             sh("git config user.name")
+            sh("git remote -v")
             sh("git push origin ${HELM_CHART_GIT_BRANCH}")
           }
           // sshagent (credentials: ['github-ssh']) {
