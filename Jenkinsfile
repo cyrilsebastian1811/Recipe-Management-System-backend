@@ -34,7 +34,7 @@ pipeline {
           echo "${git_hash}"
           echo "${git_message}"
           echo "${image_name}"
-          scope = sh(returnStdout: true, script: "echo \`expr "$git_message" : '*(major|minor|patch)*'\`")
+          scope = sh(returnStdout: true, script: "(echo \"$git_message\" | grep -Eq  ^.*major.$) && echo \"matched\" || echo \"did not match\")")
           echo "${scope}"
         }
       }
