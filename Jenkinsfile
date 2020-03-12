@@ -85,8 +85,10 @@ pipeline {
           sh "git branch"
 
           def presentVersion = sh(returnStdout: true, script: "yq r webapp-backend/Chart.yaml version")
+          echo "presentVersion: ${presentVersion}"
           def (major, minor, patch) = presentVersion.tokenize('.').collect { it.toInteger() }
-          def nextVersion
+          echo "$major $minor $patch"
+          def nextVersion = null
           switch (scope) {
             case 'major':
                 nextVersion = "${major + 1}.0.0"
