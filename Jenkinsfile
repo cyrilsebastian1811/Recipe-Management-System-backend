@@ -142,6 +142,7 @@ node {
       git_info = git branch: "${GIT_BRANCH}", credentialsId: "GitToken", url: "${GIT_URL}"
       git_hash = "${git_info.GIT_COMMIT[0..6]}"
       git_message = sh(returnStdout: true, script: "git log --format=%B -n 1 ${git_info.GIT_COMMIT}")
+      echo "$DOCKERHUB_CREDENTIALS_USR"
       image_name = "${DOCKERHUB_CREDENTIALS_USR}/${REPOSITORY_NAME}"
 
       echo "${git_hash}"
