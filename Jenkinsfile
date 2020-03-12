@@ -81,7 +81,7 @@ pipeline {
         sh "git commit -am 'version upgrade to 0.1.${BUILD_NUMBER} by jenkins'"
 
 
-        withCredentials([usernamePassword(credentialsId: 'GitToken', usernameVariable: "${GITHUB_CREDENTIALS_USR}", passwordVariable: "${GITHUB_CREDENTIALS_PSW}")]){
+        withCredentials([usernamePassword(credentialsId: 'GitToken', usernameVariable: "${GIT_CREDENTIALS_USR}", passwordVariable: "${GIT_CREDENTIALS_PSW}")]){
           
           sh("git config user.name")
         }
