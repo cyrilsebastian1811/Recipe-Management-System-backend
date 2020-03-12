@@ -117,18 +117,21 @@
 // }
 
 node {
-  GIT_URL = "${env.GIT_URL}"
-  GIT_BRANCH = "${env.GIT_BRANCH}"
-  DOCKERHUB_CREDENTIALS = credentials('dockerhub_credentials')
-  GIT_CREDENTIALS = credentials('GitToken')
-  HELM_CHART_GIT_URL = "${env.HELM_CHART_GIT_URL}"
-  HELM_CHART_GIT_BRANCH = "${env.HELM_CHART_GIT_BRANCH}"
-  REPOSITORY_NAME = "${env.REPOSITORY_NAME}"
-  image_name = null
-  git_hash = null
-  image = null
-  git_message = null
-  scope = null
+
+  environment {
+    GIT_URL = "${env.GIT_URL}"
+    GIT_BRANCH = "${env.GIT_BRANCH}"
+    DOCKERHUB_CREDENTIALS = credentials('dockerhub_credentials')
+    GIT_CREDENTIALS = credentials('GitToken')
+    HELM_CHART_GIT_URL = "${env.HELM_CHART_GIT_URL}"
+    HELM_CHART_GIT_BRANCH = "${env.HELM_CHART_GIT_BRANCH}"
+    REPOSITORY_NAME = "${env.REPOSITORY_NAME}"
+    image_name = null
+    git_hash = null
+    image = null
+    git_message = null
+    scope = null
+  }
 
   stage('Cloning WEBAPP-BACKEND') {
     script {
@@ -212,5 +215,5 @@ node {
       }
     }
   }
-  
+
 }
