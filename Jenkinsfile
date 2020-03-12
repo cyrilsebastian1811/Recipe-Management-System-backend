@@ -38,7 +38,6 @@ pipeline {
           scope = sh(returnStdout: true, script: "(echo \"$git_message\" | grep -Eq  ^.*major.*) && echo \"major\" || echo \"minor\"")
           scope = sh(returnStdout: true, script: "(echo \"$git_message\" | grep -Eq  ^.*minor.*) && echo \"minor\" || echo \"${scope}\"")
           scope = sh(returnStdout: true, script: "(echo \"$git_message\" | grep -Eq  ^.*patch.*) && echo \"patch\" || echo \"${scope}\"")
-          echo "${scope}"
         }
       }
     }
@@ -87,9 +86,10 @@ pipeline {
           def presentVersion = sh(returnStdout: true, script: "yq r webapp-backend/Chart.yaml version")
           echo "presentVersion: ${presentVersion}"
           def (major, minor, patch) = presentVersion.tokenize('.').collect { it.toInteger() }
-          echo "$major $minor $patch"
+          echo "major: $major, minor: $minor, patch: $patch"
           def nextVersion = null
-          switch (scope) {
+          echo "$scope"
+          switch ("$scope") {
             case 'major':
                 nextVersion = "${major + 1}.0.0"
                 break
