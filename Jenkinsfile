@@ -104,16 +104,19 @@ pipeline {
           sh "yq r webapp-backend/Chart.yaml version"
           sh "yq w -i webapp-backend/values.yaml 'dockerImage' ${image_name}:${git_hash}"
           sh "yq w -i webapp-backend/values.yaml 'imageCredentials.registry' https://index.docker.io/v1/"
-          sh "git commit -am 'version upgrade to ${nextVersion} by jenkins'"
 
-          withCredentials([usernamePassword(credentialsId: 'GitToken', usernameVariable: "${GIT_CREDENTIALS_USR}", passwordVariable: "${GIT_CREDENTIALS_PSW}")]){
-            sh("git config user.name")
-            sh("git remote -v")
-            sh("git push origin ${HELM_CHART_GIT_BRANCH}")
-          }
-          // sshagent (credentials: ['github-ssh']) {
+          // withCredentials([usernamePassword(credentialsId: 'GitToken', usernameVariable: "${GIT_CREDENTIALS_USR}", passwordVariable: "${GIT_CREDENTIALS_PSW}")]){
+          //   sh("git config user.name")
+          //   sh("git remote -v")
+          //   sh "git commit -am 'version upgrade to ${nextVersion} by jenkins'"
           //   sh("git push origin ${HELM_CHART_GIT_BRANCH}")
           // }
+          withCredentials([usernamePassword(credentialsId: 'GitToken', passwordVariable: "${GIT_CREDENTIALS_PSW}")]){
+            sh("git config user.name")
+            sh("git remote -v")
+            sh "git commit -am 'version upgrade to ${nextVersion} by jenkins'"
+            sh("git push origin ${HELM_CHART_GIT_BRANCH}")
+          }
         }
       }
     }
