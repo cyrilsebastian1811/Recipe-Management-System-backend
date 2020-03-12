@@ -20,6 +20,7 @@ pipeline {
         script {
           echo "${GIT_BRANCH}"
           echo "${GIT_URL}"
+          sh("git config user.name")
 
           git_info = git branch: "${GIT_BRANCH}", credentialsId: "github-ssh", url: "${GIT_URL}"
           git_hash = "${git_info.GIT_COMMIT[0..6]}"
@@ -78,7 +79,6 @@ pipeline {
         sh "yq w -i webapp-backend/values.yaml 'imageCredentials.registry' https://index.docker.io/v1/"
         sh "git commit -am 'version upgrade to 0.1.${BUILD_NUMBER} by jenkins'"
 
-        // sh("git config user.name Jenkins")
         sh("git config user.name")
         sshagent (credentials: ['github-ssh']) {
           sh("git push origin ${HELM_CHART_GIT_BRANCH}")
