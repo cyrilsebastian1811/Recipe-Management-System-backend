@@ -7,6 +7,7 @@ const redis = require("redis");
 const redisSentinel = require("redis-sentinel-client")
 const { promisify } = require("util");
 const { createLogger, format, transports } = require('winston');
+const promClient = require("prom-client");
 const saltRounds = 10;
 
 const db = require("./db");
@@ -44,6 +45,34 @@ if(process.env.ENVIRONMENT === "production") {
 const setRedisAsync = promisify(redisClient.set).bind(redisClient);
 const getRedisAsync = promisify(redisClient.get).bind(redisClient);
 const delRedisAsync = promisify(redisClient.del).bind(redisClient);
+
+// counters for all APIs
+const createRecipeCounter = new promClient.Counter({
+    name: 'create_recipe_counter',
+    help: 'Number of times create recipe API is called'
+});
+const getRecipeCounter = new promClient.Counter({
+    name: 'get_recipe_counter',
+    help: 'Number of times get recipe API is called'
+});
+const updateRecipeCounter = new promClient.Counter({
+    name: 'update_recipe_counter',
+    help: 'Number of times update recipe API is called'
+});
+const deleteRecipeCounter = new promClient.Counter({
+    name: 'delete_recipe_counter',
+    help: 'Number of times delete recipe API is called'
+});
+
+// Prometheus summary
+const databaseSummary = new promClient.Summary({
+    name: 'database_call_summary',
+    help: 'Summary of the duration of database call'
+});
+const redisSummary = new promClient.Summary({
+    name: 'redis_call_summary',
+    help: 'Summary of the duration of redis call'
+});
 
 
 redisClient.on("error", (err) => {
@@ -251,7 +280,9 @@ const createRecipe = async (req, res) => {
             ingredients: req.body.ingredients,
         }
 
+        const end = databaseSummary.startTimer();
         await db.createRecipe(recipeInput);
+        end();
 
         for(const step of req.body.steps) {
             const stepInput = {
@@ -273,13 +304,16 @@ const createRecipe = async (req, res) => {
         await db.createRecipeNutritionInformation(nutritionInput);
 
         logger.info(`Create recipe successful. Recipe id ${recipeInput.id}`);
+        createRecipeCounter.inc();
 
         // add to redis cache for 10 minutes
+        const redisEnd = redisSummary.startTimer();
         await setRedisAsync(recipeInput.id, JSON.stringify({
             ...recipeInput,
             steps: req.body.steps,
             nutrition_information: req.body.nutrition_information
         }), "EX", 60 * 10);
+        redisEnd();
 
         res.status(201).send({
             ...recipeInput,
@@ -361,7 +395,9 @@ const getRecipeDetails = async (req, res) => {
 
     logger.info(`Fetch recipe for id ${id}`);
 
+    const redisEnd = redisSummary.startTimer();
     const cachedRecipe = await getRedisAsync(id);
+    redisEnd();
     const {rows: imageDetails} = await db.getAllImagesForRecipe(id);
     if(cachedRecipe !== null) {
         const responseObject = JSON.parse(cachedRecipe);
@@ -375,7 +411,10 @@ const getRecipeDetails = async (req, res) => {
         });
     }
 
+    const end = databaseSummary.startTimer();
     const {rows: recipeDetails} = await db.getRecipeDetails(id);
+    end();
+
     const {rows: recipeSteps} = await db.getRecipeSteps(id);
     const {rows: recipeNutritionInformation} = await db.getRecipeNutritionInformation(id);
 
@@ -409,10 +448,13 @@ const getRecipeDetails = async (req, res) => {
     };
 
     if(cachedRecipe == null) {
+        const setEnd = redisSummary.startTimer();
         await setRedisAsync(id, JSON.stringify(recipeObject), "EX", 60 * 10);
+        setEnd();
     }
 
     logger.info(`Fetch recipe successful`);
+    getRecipeCounter.inc();
 
     res.status(200).send({
         image: !lodash.isEmpty(imageDetails) && imageDetails.length > 0 ? {
@@ -458,6 +500,7 @@ const updateRecipe = async (req, res) => {
     };
 
     const {rows: [user]} = await db.getUserDetails(email);
+
     const {rows: recipeDetails} = await db.getRecipeDetails(id);
 
     if(lodash.isEmpty(recipeDetails)) return res.status(404).json("Not Found");
@@ -493,8 +536,12 @@ const updateRecipe = async (req, res) => {
         cuisine: newCuisine,
         servings: newServings,
         ingredients: newIngredients
-    }
+    };
+
+    // time the call to update the recipe
+    const end = databaseSummary.startTimer();
     await db.updateRecipe(updateRecipeInput, id);
+    end();
 
     if(req.body.steps) {
         await db.deleteRecipeOldSteps(id);
@@ -529,12 +576,15 @@ const updateRecipe = async (req, res) => {
     };
 
     // set cache with the updated recipe
+    const redisEnd = redisSummary.startTimer();
     setRedisAsync(id, JSON.stringify(updatedRecipeObject), "EX", 60 * 10);
+    redisEnd();
 
     logger.info(`Update recipe successful for id ${id}`);
+    updateRecipeCounter.inc();
 
     res.status(200).send(updatedRecipeObject);
-}
+};
 
 const deleteRecipe = async (req, res) => {
     const email = res.locals.email;
@@ -553,9 +603,13 @@ const deleteRecipe = async (req, res) => {
     if(user.id !== recipeDetails[0].author_id) return res.sendStatus(401);
 
     try {
+        const redisEnd = redisSummary.startTimer();
         await delRedisAsync(recipeId);
+        redisEnd();
 
+        const end = databaseSummary.startTimer();
         await db.deleteRecipe(recipeId);
+        end();
 
         if(!lodash.isEmpty(imageDetails) && imageDetails.length > 0) {
             await Promise.all(imageDetails.map(async ({ url }) => {
@@ -571,8 +625,9 @@ const deleteRecipe = async (req, res) => {
     }
 
     logger.info("Delete recipe successful");
+    deleteRecipeCounter.inc();
     res.sendStatus(204);
-}
+};
 
 const createImage = async (req, res) => {
     const email = res.locals.email;
@@ -670,7 +725,14 @@ const testCache = async (req, res) => {
        key: key,
        value: cachedValue
     });
-}
+};
+
+const getMetrics = (req, res) => {
+    res.set('Content-Type', promClient.register.contentType);
+    res.end(promClient.register.metrics());
+};
+
+promClient.collectDefaultMetrics();
 
 
 module.exports = {
@@ -688,6 +750,7 @@ module.exports = {
     deleteRecipeImage,
     getImage,
     testCache,
+    getMetrics
 };
 
 
