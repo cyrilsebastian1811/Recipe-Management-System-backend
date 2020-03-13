@@ -12,6 +12,7 @@ pipeline {
     REPOSITORY = "${env.REPOSITORY}"
     S3_BUCKET_URL = "${env.S3_BUCKET_URL}"
     RDS_ENDPOINT = "${env.RDS_ENDPOINT}"
+    KUBERNETES_API = "${env.KUBERNETES_API}"
 
     // Password Parameters
     AWS_ACCESS_KEY_ID = "${env.AWS_ACCESS_KEY_ID}"
@@ -126,7 +127,7 @@ pipeline {
         script {
           sh "pwd"
           sh "ls -a"
-          withKubeConfig([credentialsId: 'kubernetes_credentials', serverUrl: 'https://api.k8.dev.cyril-sebastian.com']) {
+          withKubeConfig([credentialsId: 'kubernetes_credentials', serverUrl: "${KUBERNETES_API}"]) {
             sh "kubectl get ns"
             sh "helm version"
             sh "helm dependency update ./webapp-backend"
