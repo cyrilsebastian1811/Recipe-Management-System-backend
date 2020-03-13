@@ -24,6 +24,7 @@ pipeline {
     image = null
     git_message = null
     scope = null
+    nextVersion = null
   }
   agent any
   options {
@@ -100,7 +101,6 @@ pipeline {
           echo "presentVersion: ${presentVersion}"
           def (major, minor, patch) = presentVersion.tokenize('.').collect { it.toInteger() }
           echo "major: $major, minor: $minor, patch: $patch"
-          def nextVersion = null
           switch ("$scope") {
             case "major":
                 nextVersion = "${major + 1}.${minor}.${patch}"
