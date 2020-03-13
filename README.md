@@ -45,6 +45,7 @@ SENTINEL_PORT = 26379
 5. You can also manually build the project with parameters.
 
 
+## Jenkins
 
 ### Jenkns Plugins to be Installed
 1. GitHub Integration
