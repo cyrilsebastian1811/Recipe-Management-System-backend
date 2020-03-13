@@ -124,8 +124,11 @@ pipeline {
           sh "pwd"
           sh "ls -a"
           withKubeConfig([credentialsId: 'kubernetes_credentials', serverUrl: 'https://api.k8.dev.cyril-sebastian.com']) {
-            sh 'kubectl get ns'
-            sh "helm upgrade backend ./webapp-backend -n api --install --wait --set dbUser=${DB_CREDENTIALS_USR},dbPassword=${DB_CREDENTIALS_PSW},imageCredentials.username=${DOCKERHUB_CREDENTIALS_USR},imageCredentials.password=${DOCKERHUB_CREDENTIALS_PSW},rdsEndpoint=${RDS_ENDPOINT},s3Bucket=${S3_BUCKET_URL},awsAccess=${AWS_ACCESS_KEY_ID},awsSecret=${AWS_SECRET_ACCESS_KEY},redis.global.redis.password=${REDIS_PSW},imageCredentials.registry=https://index.docker.io/v1/"
+            sh "kubectl get ns"
+            sh "helm version"
+            sh "helm dependency update ./webapp-backend"
+            sh("helm upgrade backend ./webapp-backend -n api --install --wait --set 
+            dbUser=${DB_CREDENTIALS_USR},dbPassword=${DB_CREDENTIALS_PSW},imageCredentials.username=${DOCKERHUB_CREDENTIALS_USR},imageCredentials.password=${DOCKERHUB_CREDENTIALS_PSW},rdsEndpoint=${RDS_ENDPOINT},s3Bucket=${S3_BUCKET_URL},awsAccess=${AWS_ACCESS_KEY_ID},awsSecret=${AWS_SECRET_ACCESS_KEY},redis.global.redis.password=${REDIS_PSW},imageCredentials.registry=https://index.docker.io/v1/")
           }
         }
       }
