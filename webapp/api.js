@@ -6,6 +6,7 @@ const formidable = require('formidable');
 const redis = require("redis");
 const redisSentinel = require("redis-sentinel-client")
 const { promisify } = require("util");
+const { createLogger, format, transports } = require('winston');
 const saltRounds = 10;
 
 const db = require("./db");
@@ -13,8 +14,15 @@ const s3 = require("./s3");
 
 let redisClient = null;
 
+const logger = createLogger({
+    format: format.combine(format.timestamp(), format.json()),
+   transports: [
+       new transports.Console()
+   ]
+});
+
 if(process.env.ENVIRONMENT === "production") {
-    console.log("Using redis-sentinel-client");
+    logger.log({level: "info", message: "Using redis-sentinel-client"});
     redisClient = redisSentinel.createClient({
         host: process.env.REDIS_HOST,
         port: process.env.SENTINEL_PORT,
@@ -25,7 +33,7 @@ if(process.env.ENVIRONMENT === "production") {
         master_auth_pass: process.env.REDIS_PASSWORD
     });
 } else {
-    console.log("Using redis");
+    logger.log({level: "info", message: "Using redis"});
     redisClient = redis.createClient({
         host: process.env.REDIS_HOST,
         port: process.env.REDIS_PORT,
@@ -39,7 +47,7 @@ const delRedisAsync = promisify(redisClient.del).bind(redisClient);
 
 
 redisClient.on("error", (err) => {
-    console.log(err);
+    logger.error(err);
 });
 
 const checkPassword = (password) => {
@@ -57,7 +65,7 @@ const checkPassword = (password) => {
 const checkEmail = (email) =>  (/[a-zA-Z0-9_\.\+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-\.]+/.test(email));
 
 const authorizeMiddleware = async (req, res, next) => {
-    console.info("checking for authentication");
+    // console.info("checking for authentication");
     const auth = req.get('Authorization');
 
     if(lodash.isEmpty(auth)) return res.sendStatus(401);
@@ -84,12 +92,12 @@ const authorizeMiddleware = async (req, res, next) => {
         return res.status(401).json("Unauthorized");
     }
 
-    console.info("authentication successful");
+    // console.info("authentication successful");
     next();
 }
 
 const createUser = async (request, response) => {
-    console.info(`Create user with request body ${JSON.stringify(request.body)}`);
+    logger.info(`Create user with request body ${JSON.stringify(request.body)}`);
 
     const email = request.body.email;
     const firstname = request.body.firstname;
@@ -120,7 +128,7 @@ const createUser = async (request, response) => {
 
     await db.createUser(createUserInput);
 
-    console.info("create user successful");
+    logger.info("create user successful");
 
     response.status(201).json({
         id: createUserInput.id,
@@ -148,7 +156,7 @@ const getUserDetails = async (req, res) => {
 }
 
 const updateUserDetails = async (req, res) => {
-    console.info(`update user details for ${res.locals.email} with request body ${JSON.stringify(req.body)}`);
+    logger.info(`update user details for ${res.locals.email} with request body ${JSON.stringify(req.body)}`);
     const email = res.locals.email;
 
     const schema = {
@@ -185,7 +193,7 @@ const updateUserDetails = async (req, res) => {
         account_updated: now,
     }
 
-    console.info(`user details updated`);
+    logger.info(`user details updated`);
 
     db.updateUserDetails(updateUserDetailsInput).then(() => {
         res.sendStatus(204);
@@ -194,6 +202,8 @@ const updateUserDetails = async (req, res) => {
 
 const createRecipe = async (req, res) => {
     const email = res.locals.email;
+
+    logger.info(`Create recipe request with body ${JSON.stringify(req.body)}`);
 
     const stepsSchema = Joi.object().keys({
         position: Joi.number().min(1).required(),
@@ -262,6 +272,8 @@ const createRecipe = async (req, res) => {
 
         await db.createRecipeNutritionInformation(nutritionInput);
 
+        logger.info(`Create recipe successful. Recipe id ${recipeInput.id}`);
+
         // add to redis cache for 10 minutes
         await setRedisAsync(recipeInput.id, JSON.stringify({
             ...recipeInput,
@@ -275,7 +287,7 @@ const createRecipe = async (req, res) => {
             nutrition_information: req.body.nutrition_information,
         });
     } catch(err) {
-        console.log(err);
+        logger.error(err);
         res.sendStatus(500);
     }
 }
@@ -347,6 +359,8 @@ const getAllRecipes = async (req, res) => {
 const getRecipeDetails = async (req, res) => {
     const id = req.params.id;
 
+    logger.info(`Fetch recipe for id ${id}`);
+
     const cachedRecipe = await getRedisAsync(id);
     const {rows: imageDetails} = await db.getAllImagesForRecipe(id);
     if(cachedRecipe !== null) {
@@ -398,6 +412,7 @@ const getRecipeDetails = async (req, res) => {
         await setRedisAsync(id, JSON.stringify(recipeObject), "EX", 60 * 10);
     }
 
+    logger.info(`Fetch recipe successful`);
 
     res.status(200).send({
         image: !lodash.isEmpty(imageDetails) && imageDetails.length > 0 ? {
@@ -411,6 +426,8 @@ const getRecipeDetails = async (req, res) => {
 const updateRecipe = async (req, res) => {
     const email = res.locals.email;
     const id = req.params.id;
+
+    logger.info(`Update recipe ${id} with body ${JSON.stringify(req.body)}`);
 
     const stepsSchema = Joi.object().keys({
         position: Joi.number().min(1).required(),
@@ -514,6 +531,8 @@ const updateRecipe = async (req, res) => {
     // set cache with the updated recipe
     setRedisAsync(id, JSON.stringify(updatedRecipeObject), "EX", 60 * 10);
 
+    logger.info(`Update recipe successful for id ${id}`);
+
     res.status(200).send(updatedRecipeObject);
 }
 
@@ -521,11 +540,13 @@ const deleteRecipe = async (req, res) => {
     const email = res.locals.email;
     const recipeId = req.params.id;
 
+    logger.info(`Delete recipe with id ${recipeId}`);
+
     const {rows: [user]} = await db.getUserDetails(email);
 
     const {rows: recipeDetails} = await db.getRecipeDetails(recipeId);
 
-    const {rows: imageDetails} = await db.getAllImagesForRecipe(recipeId)
+    const {rows: imageDetails} = await db.getAllImagesForRecipe(recipeId);
 
     if(lodash.isEmpty(recipeDetails)) return res.sendStatus(404);
 
@@ -545,10 +566,11 @@ const deleteRecipe = async (req, res) => {
         }
 
     } catch(err) {
-        console.log(err);
+        logger.error(err);
         return res.sendStatus(500);
     }
 
+    logger.info("Delete recipe successful");
     res.sendStatus(204);
 }
 
@@ -567,7 +589,7 @@ const createImage = async (req, res) => {
 
     new formidable.IncomingForm().parse(req, async (err, fields, files) => {
         if (err) {
-            console.error('Error', err)
+            logger.error('Error', err)
             throw err
         }
 
@@ -591,7 +613,7 @@ const createImage = async (req, res) => {
                     url: s3Data.Location,
                 });
             }  catch(err) {
-                console.error(err);
+                logger.error(err);
                 return res.status(400).json(err);
             }
         }
@@ -632,7 +654,7 @@ const deleteRecipeImage = async (req,res) => {
 
         return res.status(204).json("No Content");
     } catch (err) {
-        console.log(err);
+        logger.error(err);
         return res.status(400).json("Bad Request");
     }
 }
