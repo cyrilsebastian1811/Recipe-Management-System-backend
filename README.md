@@ -49,7 +49,9 @@ SENTINEL_PORT = 26379
 ### Jenkns Plugins to be Installed
 1. GitHub Integration
 2. Kubernetes CLI
-3. SSH Agent
+3. Kubernetes CLI
+4. SSH Agent
+5. Generic Webhook Trigger
 
 ### Jenkins Configuration for Pipeline
 #### Credentials
