@@ -43,3 +43,23 @@ SENTINEL_PORT = 26379
     c. Check 'GitHub hook trigger for GITScm polling' in 'Build Triggers'
     d. In 'Pipeline' choose Git and pass in the repository and credentials. 
 5. You can also manually build the project with parameters.
+
+
+
+### Jenkns Plugins to be Installed
+1. GitHub Integration
+2. Kubernetes CLI
+3. SSH Agent
+
+### Jenkins Configuration for Pipeline
+#### Credentials
+```
+1. dockerhub_credentials(Username and Password) --> Username: cyrilsebastian1811, Password: Onepiece181195
+2. github-ssh(SSH) --> Username: github, Private Key(contents of github private key file from local machine)
+3. kubernetes_credentials(Username and Password) --> Username: admin, Password: (~/.kube/config/users:password | base64 )
+```
+
+#### Configure System
+```
+1. Manage Jenkins -> Configure System -> Cloud -> Kubernetes: Kubernetes server certificate key: (~/.kube/config/clusters:certificate-authority-data | base64decode ) Credentials: kubernetes_credentials
+```
