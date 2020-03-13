@@ -1,21 +1,24 @@
 pipeline {
   environment {
+    // Credentials Parameters
+    DOCKERHUB_CREDENTIALS = credentials('dockerhub_credentials')
+    DB_CREDENTIALS = credentials('db_credentials')
+
+    // String Parameters
     GIT_URL = "${env.GIT_URL}"
     GIT_BRANCH = "${env.GIT_BRANCH}"
     HELM_CHART_GIT_URL = "${env.HELM_CHART_GIT_URL}"
     HELM_CHART_GIT_BRANCH = "${env.HELM_CHART_GIT_BRANCH}"
     REPOSITORY = "${env.REPOSITORY}"
-    DOCKERHUB_CREDENTIALS = credentials('dockerhub_credentials')
-    // GIT_CREDENTIALS = credentials('github-ssh')
-
-    // 
     S3_BUCKET_URL = "${env.S3_BUCKET_URL}"
     RDS_ENDPOINT = "${env.RDS_ENDPOINT}"
+
+    // Password Parameters
     AWS_ACCESS_KEY_ID = "${env.AWS_ACCESS_KEY_ID}"
     AWS_SECRET_ACCESS_KEY = "${env.AWS_SECRET_ACCESS_KEY}"
     REDIS_PSW = "${env.REDIS_PSW}"
-    DB_CREDENTIALS = credentials('db_credentials')
-    // 
+    
+    // Default Parameters
     image_name = null
     git_hash = null
     image = null
