@@ -39,6 +39,7 @@ createTables().then(() => {
         { path: "/v1/user", method: "POST" },
         { path: "/v1/recipe", method: "GET" },
         { path: "/v1/allRecipes", method: "GET" },
+        { path: "/testCache", method: "GET" }
     ], api.authorizeMiddleware));
 
     app.use(cors());
@@ -66,6 +67,8 @@ createTables().then(() => {
     app.post("/v1/recipe/:id/image", api.createImage);
     app.get("/v1/recipe/:recipeId/image/:imageId", api.getImage);
     app.delete("/v1/recipe/:recipeId/image/:imageId", api.deleteRecipeImage);
+
+    app.get("/testCache", api.testCache);
 
     app.listen(port, () => {
         console.log(`App running on port ${port}.`);

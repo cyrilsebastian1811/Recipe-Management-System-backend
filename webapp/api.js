@@ -4,17 +4,34 @@ const Joi = require('joi');
 const lodash = require('lodash');
 const formidable = require('formidable');
 const redis = require("redis");
+const redisSentinel = require("redis-sentinel-client")
 const { promisify } = require("util");
 const saltRounds = 10;
 
 const db = require("./db");
 const s3 = require("./s3");
 
-const redisClient = redis.createClient({
-    host: process.env.REDIS_HOST,
-    port: process.env.REDIS_PORT,
-    password: process.env.REDIS_PASSWORD
-});
+let redisClient = null;
+
+if(process.env.ENVIRONMENT === "production") {
+    console.log("Using redis-sentinel-client");
+    redisClient = redisSentinel.createClient({
+        host: process.env.REDIS_HOST,
+        port: process.env.SENTINEL_PORT,
+        masterOptions: {
+            host: process.env.REDIS_HOST,
+            port: process.env.REDIS_PORT,
+        },
+        master_auth_pass: process.env.REDIS_PASSWORD
+    });
+} else {
+    console.log("Using redis");
+    redisClient = redis.createClient({
+        host: process.env.REDIS_HOST,
+        port: process.env.REDIS_PORT,
+        password: process.env.REDIS_PASSWORD
+    });
+}
 
 const setRedisAsync = promisify(redisClient.set).bind(redisClient);
 const getRedisAsync = promisify(redisClient.get).bind(redisClient);
@@ -620,6 +637,20 @@ const deleteRecipeImage = async (req,res) => {
     }
 }
 
+const testCache = async (req, res) => {
+    const key = req.query.key;
+    const val = req.query.val;
+
+    await setRedisAsync(key, val, "EX", 60);
+    const cachedValue = await getRedisAsync(key);
+
+    return res.send({
+       key: key,
+       value: cachedValue
+    });
+}
+
+
 module.exports = {
     authorizeMiddleware,
     createUser,
@@ -634,6 +665,7 @@ module.exports = {
     createImage,
     deleteRecipeImage,
     getImage,
+    testCache,
 };
 
 
