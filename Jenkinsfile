@@ -30,15 +30,12 @@ pipeline {
         script {
           echo "${GIT_BRANCH}"
           echo "${GIT_URL}"
-          sh("git config user.name")
 
           git_info = git branch: "${GIT_BRANCH}", credentialsId: "github-ssh", url: "${GIT_URL}"
           git_hash = "${git_info.GIT_COMMIT[0..6]}"
           git_message = sh(returnStdout: true, script: "git log --format=%B -n 1 ${git_info.GIT_COMMIT}")
-          // image_name = "${DOCKERHUB_CREDENTIALS_USR}/${REPOSITORY_NAME}"
 
           echo "${git_hash}"
-          // echo "${image_name}"
           
           echo "${git_message}"
           scope = sh(returnStdout: true, script: "(echo \"$git_message\" | grep -Eq  ^.*major.*) && echo \"major\" || echo \"minor\"")
@@ -118,7 +115,6 @@ pipeline {
       steps {
         script {
           sshagent(['github-ssh']) {
-            sh("git config user.name")
             sh "git commit -am 'backend version upgrade to ${nextVersion} by jenkins'"
             sh("git push origin ${HELM_CHART_GIT_BRANCH}")
           }
