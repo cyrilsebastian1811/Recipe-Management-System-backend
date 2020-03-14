@@ -16,7 +16,7 @@ let redisClient = null;
 
 const logger = createLogger({
     format: format.combine(
-        format.timestamp(),
+        // format.timestamp(),
         format.splat(),
         format.simple()
     ),
