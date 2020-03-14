@@ -3,8 +3,6 @@ pipeline {
     // Credentials Parameters
     DOCKERHUB_CREDENTIALS = credentials('dockerhub_credentials')
     DB_CREDENTIALS = credentials('db_credentials')
-    // DOCKERHUB_CREDENTIALS = "${env.dockerhub_credentials}"
-    // DB_CREDENTIALS = "${env.db_credentials}"
 
     // // String Parameters
     GIT_URL = "${env.GIT_URL}"
@@ -72,7 +70,7 @@ pipeline {
     stage('Push Image') { 
       steps {
         script {
-          def docker_info = docker.withRegistry("https://registry.hub.docker.com/", 'dockerhub_credentials') {
+          def docker_info = docker.withRegistry("https://registry.hub.docker.com/", "dockerhub_credentials") {
             image.push("${git_hash}")
           }
         }
@@ -88,7 +86,7 @@ pipeline {
     stage('Checkout Helm-Charts') { 
       steps {
         script {
-          git_info = git branch: "${HELM_CHART_GIT_BRANCH}", credentialsId: 'github-ssh', url: "${HELM_CHART_GIT_URL}"
+          git_info = git branch: "${HELM_CHART_GIT_BRANCH}", credentialsId: "github-ssh", url: "${HELM_CHART_GIT_URL}"
         }
       }
     }
@@ -146,7 +144,7 @@ pipeline {
         script {
           sshagent(['github-ssh']) {
             sh("git config user.name")
-            sh "git commit -am 'version upgrade to ${nextVersion} by jenkins'"
+            sh "git commit -am 'backend version upgrade to ${nextVersion} by jenkins'"
             sh("git push origin ${HELM_CHART_GIT_BRANCH}")
           }
         }

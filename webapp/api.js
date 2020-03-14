@@ -17,7 +17,7 @@ let redisClient = null;
 const logger = createLogger({
     format: format.combine(
         format.timestamp(),
-        format.printf(i => `${i.timestamp} | ${i.message}`)
+        format.simple()
         // format.json()
     ),
    transports: [
