@@ -16,14 +16,18 @@ const s3 = require("./s3");
 let redisClient = null;
 
 const logger = createLogger({
-    format: format.combine(format.timestamp(), format.json()),
+    format: format.combine(
+        // format.timestamp(),
+        format.splat(),
+        format.simple()
+    ),
    transports: [
        new transports.Console()
    ]
 });
 
 if(process.env.ENVIRONMENT === "production") {
-    logger.log({level: "info", message: "Using redis-sentinel-client"});
+    logger.info("Using redis-sentinel-client");
     redisClient = redisSentinel.createClient({
         host: process.env.REDIS_HOST,
         port: process.env.SENTINEL_PORT,
@@ -34,7 +38,7 @@ if(process.env.ENVIRONMENT === "production") {
         master_auth_pass: process.env.REDIS_PASSWORD
     });
 } else {
-    logger.log({level: "info", message: "Using redis"});
+    logger.info("Using redis");
     redisClient = redis.createClient({
         host: process.env.REDIS_HOST,
         port: process.env.REDIS_PORT,

@@ -4,22 +4,14 @@ pipeline {
     DOCKERHUB_CREDENTIALS = credentials('dockerhub_credentials')
     DB_CREDENTIALS = credentials('db_credentials')
 
-    // String Parameters
+    // // String Parameters
     GIT_URL = "${env.GIT_URL}"
     GIT_BRANCH = "${env.GIT_BRANCH}"
     HELM_CHART_GIT_URL = "${env.HELM_CHART_GIT_URL}"
     HELM_CHART_GIT_BRANCH = "${env.HELM_CHART_GIT_BRANCH}"
     REPOSITORY = "${env.REPOSITORY}"
-    S3_BUCKET_URL = "${env.S3_BUCKET_URL}"
-    RDS_ENDPOINT = "${env.RDS_ENDPOINT}"
-    KUBERNETES_API = "${env.KUBERNETES_API}"
-
-    // Password Parameters
-    AWS_ACCESS_KEY_ID = "${env.AWS_ACCESS_KEY_ID}"
-    AWS_SECRET_ACCESS_KEY = "${env.AWS_SECRET_ACCESS_KEY}"
-    REDIS_PSW = "${env.REDIS_PSW}"
     
-    // Default Parameters
+    // // Default Parameters
     image_name = null
     git_hash = null
     image = null
@@ -38,15 +30,12 @@ pipeline {
         script {
           echo "${GIT_BRANCH}"
           echo "${GIT_URL}"
-          sh("git config user.name")
 
           git_info = git branch: "${GIT_BRANCH}", credentialsId: "github-ssh", url: "${GIT_URL}"
           git_hash = "${git_info.GIT_COMMIT[0..6]}"
           git_message = sh(returnStdout: true, script: "git log --format=%B -n 1 ${git_info.GIT_COMMIT}")
-          // image_name = "${DOCKERHUB_CREDENTIALS_USR}/${REPOSITORY_NAME}"
 
           echo "${git_hash}"
-          // echo "${image_name}"
           
           echo "${git_message}"
           scope = sh(returnStdout: true, script: "(echo \"$git_message\" | grep -Eq  ^.*major.*) && echo \"major\" || echo \"minor\"")
@@ -84,7 +73,7 @@ pipeline {
     stage('Checkout Helm-Charts') { 
       steps {
         script {
-          git_info = git branch: "${HELM_CHART_GIT_BRANCH}", credentialsId: 'github-ssh', url: "${HELM_CHART_GIT_URL}"
+          git_info = git branch: "${HELM_CHART_GIT_BRANCH}", credentialsId: "github-ssh", url: "${HELM_CHART_GIT_URL}"
         }
       }
     }
@@ -122,27 +111,11 @@ pipeline {
       }
     }
 
-    stage('bakend helm chart install') {
-      steps {
-        script {
-          sh "pwd"
-          sh "ls -a"
-          withKubeConfig([credentialsId: 'kubernetes_credentials', serverUrl: "${KUBERNETES_API}"]) {
-            sh "kubectl get ns"
-            sh "helm version"
-            sh "helm dependency update ./webapp-backend"
-            sh("helm upgrade backend ./webapp-backend -n api --install --wait --set dbUser=${DB_CREDENTIALS_USR},dbPassword=${DB_CREDENTIALS_PSW},imageCredentials.username=${DOCKERHUB_CREDENTIALS_USR},imageCredentials.password=${DOCKERHUB_CREDENTIALS_PSW},rdsEndpoint=${RDS_ENDPOINT},s3Bucket=${S3_BUCKET_URL},awsAccess=${AWS_ACCESS_KEY_ID},awsSecret=${AWS_SECRET_ACCESS_KEY},redis.global.redis.password=${REDIS_PSW},imageCredentials.registry=https://index.docker.io/v1/")
-          }
-        }
-      }
-    }
-
     stage('Push to Helm-Charts Repo') {
       steps {
         script {
           sshagent(['github-ssh']) {
-            sh("git config user.name")
-            sh "git commit -am 'version upgrade to ${nextVersion} by jenkins'"
+            sh "git commit -am 'backend version upgrade to ${nextVersion} by jenkins'"
             sh("git push origin ${HELM_CHART_GIT_BRANCH}")
           }
         }
