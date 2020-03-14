@@ -16,11 +16,11 @@ const s3 = require("./s3");
 let redisClient = null;
 
 const logger = createLogger({
-    // format: format.combine(
-    //     // format.timestamp(),
-    //     format.splat(),
-    //     format.simple()
-    // ),
+    format: format.combine(
+        // format.timestamp(),
+        format.splat(),
+        format.simple()
+    ),
    transports: [
        new transports.Console()
    ]
@@ -28,7 +28,6 @@ const logger = createLogger({
 
 if(process.env.ENVIRONMENT === "production") {
     logger.info("Using redis-sentinel-client");
-    // logger.log({level: "info", message: "Using redis-sentinel-client"});
     redisClient = redisSentinel.createClient({
         host: process.env.REDIS_HOST,
         port: process.env.SENTINEL_PORT,
@@ -40,7 +39,6 @@ if(process.env.ENVIRONMENT === "production") {
     });
 } else {
     logger.info("Using redis");
-    // logger.log({level: "info", message: "Using redis"});
     redisClient = redis.createClient({
         host: process.env.REDIS_HOST,
         port: process.env.REDIS_PORT,
@@ -132,7 +130,7 @@ const authorizeMiddleware = async (req, res, next) => {
 }
 
 const createUser = async (request, response) => {
-    // logger.info(`Create user with request body ${JSON.stringify(request.body)}`);
+    logger.info(`Create user with request body ${JSON.stringify(request.body)}`);
 
     const email = request.body.email;
     const firstname = request.body.firstname;
@@ -191,7 +189,7 @@ const getUserDetails = async (req, res) => {
 }
 
 const updateUserDetails = async (req, res) => {
-    // logger.info(`update user details for ${res.locals.email} with request body ${JSON.stringify(req.body)}`);
+    logger.info(`update user details for ${res.locals.email} with request body ${JSON.stringify(req.body)}`);
     const email = res.locals.email;
 
     const schema = {
@@ -238,7 +236,7 @@ const updateUserDetails = async (req, res) => {
 const createRecipe = async (req, res) => {
     const email = res.locals.email;
 
-    // logger.info(`Create recipe request with body ${JSON.stringify(req.body)}`);
+    logger.info(`Create recipe request with body ${JSON.stringify(req.body)}`);
 
     const stepsSchema = Joi.object().keys({
         position: Joi.number().min(1).required(),
@@ -475,7 +473,7 @@ const updateRecipe = async (req, res) => {
     const email = res.locals.email;
     const id = req.params.id;
 
-    // logger.info(`Update recipe ${id} with body ${JSON.stringify(req.body)}`);
+    logger.info(`Update recipe ${id} with body ${JSON.stringify(req.body)}`);
 
     const stepsSchema = Joi.object().keys({
         position: Joi.number().min(1).required(),
