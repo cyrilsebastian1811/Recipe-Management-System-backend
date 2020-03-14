@@ -1,10 +1,10 @@
 pipeline {
   environment {
     // Credentials Parameters
-    // DOCKERHUB_CREDENTIALS = credentials('dockerhub_credentials')
-    // DB_CREDENTIALS = credentials('db_credentials')
-    DOCKERHUB_CREDENTIALS = "${env.dockerhub_credentials}"
-    DB_CREDENTIALS = "${env.db_credentials}"
+    DOCKERHUB_CREDENTIALS = credentials('dockerhub_credentials')
+    DB_CREDENTIALS = credentials('db_credentials')
+    // DOCKERHUB_CREDENTIALS = "${env.dockerhub_credentials}"
+    // DB_CREDENTIALS = "${env.db_credentials}"
 
     // // String Parameters
     GIT_URL = "${env.GIT_URL}"
