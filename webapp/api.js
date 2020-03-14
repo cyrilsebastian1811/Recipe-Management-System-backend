@@ -27,7 +27,8 @@ const logger = createLogger({
 });
 
 if(process.env.ENVIRONMENT === "production") {
-    logger.log({level: "info", message: "Using redis-sentinel-client"});
+    logger.info("Using redis-sentinel-client");
+    // logger.log({level: "info", message: "Using redis-sentinel-client"});
     redisClient = redisSentinel.createClient({
         host: process.env.REDIS_HOST,
         port: process.env.SENTINEL_PORT,
