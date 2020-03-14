@@ -10,14 +10,6 @@ pipeline {
     HELM_CHART_GIT_URL = "${env.HELM_CHART_GIT_URL}"
     HELM_CHART_GIT_BRANCH = "${env.HELM_CHART_GIT_BRANCH}"
     REPOSITORY = "${env.REPOSITORY}"
-    S3_BUCKET_URL = "${env.S3_BUCKET_URL}"
-    RDS_ENDPOINT = "${env.RDS_ENDPOINT}"
-    KUBERNETES_API = "${env.KUBERNETES_API}"
-
-    // // Password Parameters
-    AWS_ACCESS_KEY_ID = "${env.AWS_ACCESS_KEY_ID}"
-    AWS_SECRET_ACCESS_KEY = "${env.AWS_SECRET_ACCESS_KEY}"
-    REDIS_PSW = "${env.REDIS_PSW}"
     
     // // Default Parameters
     image_name = null
@@ -39,8 +31,6 @@ pipeline {
           echo "${GIT_BRANCH}"
           echo "${GIT_URL}"
           sh("git config user.name")
-          echo "${DOCKERHUB_CREDENTIALS}"
-          echo "${DB_CREDENTIALS}"
 
           git_info = git branch: "${GIT_BRANCH}", credentialsId: "github-ssh", url: "${GIT_URL}"
           git_hash = "${git_info.GIT_COMMIT[0..6]}"
@@ -124,20 +114,20 @@ pipeline {
       }
     }
 
-    stage('bakend helm chart install') {
-      steps {
-        script {
-          sh "pwd"
-          sh "ls -a"
-          withKubeConfig([credentialsId: 'kubernetes_credentials', serverUrl: "${KUBERNETES_API}"]) {
-            sh "kubectl get ns"
-            sh "helm version"
-            sh "helm dependency update ./webapp-backend"
-            sh("helm upgrade backend ./webapp-backend -n api --install --wait --set dbUser=${DB_CREDENTIALS_USR},dbPassword=${DB_CREDENTIALS_PSW},imageCredentials.username=${DOCKERHUB_CREDENTIALS_USR},imageCredentials.password=${DOCKERHUB_CREDENTIALS_PSW},rdsEndpoint=${RDS_ENDPOINT},s3Bucket=${S3_BUCKET_URL},awsAccess=${AWS_ACCESS_KEY_ID},awsSecret=${AWS_SECRET_ACCESS_KEY},redis.global.redis.password=${REDIS_PSW},imageCredentials.registry=https://index.docker.io/v1/")
-          }
-        }
-      }
-    }
+    // stage('bakend helm chart install') {
+    //   steps {
+    //     script {
+    //       sh "pwd"
+    //       sh "ls -a"
+    //       withKubeConfig([credentialsId: 'kubernetes_credentials', serverUrl: "${KUBERNETES_API}"]) {
+    //         sh "kubectl get ns"
+    //         sh "helm version"
+    //         sh "helm dependency update ./webapp-backend"
+    //         sh("helm upgrade backend ./webapp-backend -n api --install --wait --set dbUser=${DB_CREDENTIALS_USR},dbPassword=${DB_CREDENTIALS_PSW},imageCredentials.username=${DOCKERHUB_CREDENTIALS_USR},imageCredentials.password=${DOCKERHUB_CREDENTIALS_PSW},rdsEndpoint=${RDS_ENDPOINT},s3Bucket=${S3_BUCKET_URL},awsAccess=${AWS_ACCESS_KEY_ID},awsSecret=${AWS_SECRET_ACCESS_KEY},redis.global.redis.password=${REDIS_PSW},imageCredentials.registry=https://index.docker.io/v1/")
+    //       }
+    //     }
+    //   }
+    // }
 
     stage('Push to Helm-Charts Repo') {
       steps {
