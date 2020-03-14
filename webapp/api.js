@@ -15,11 +15,11 @@ const s3 = require("./s3");
 let redisClient = null;
 
 const logger = createLogger({
-    format: format.combine(
-        // format.timestamp(),
-        format.splat(),
-        format.simple()
-    ),
+    // format: format.combine(
+    //     // format.timestamp(),
+    //     format.splat(),
+    //     format.simple()
+    // ),
    transports: [
        new transports.Console()
    ]
