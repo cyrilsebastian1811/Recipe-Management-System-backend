@@ -41,6 +41,8 @@ pipeline {
           echo "${GIT_BRANCH}"
           echo "${GIT_URL}"
           sh("git config user.name")
+          echo "${DOCKERHUB_CREDENTIALS}"
+          echo "${DB_CREDENTIALS}"
 
           git_info = git branch: "${GIT_BRANCH}", credentialsId: "github-ssh", url: "${GIT_URL}"
           git_hash = "${git_info.GIT_COMMIT[0..6]}"
