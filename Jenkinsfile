@@ -72,7 +72,7 @@ pipeline {
     stage('Push Image') { 
       steps {
         script {
-          def docker_info = docker.withRegistry(url: "https://registry.hub.docker.com/", credentialsId: "dockerhub_credentials") {
+          def docker_info = docker.withRegistry(url: "https://registry.hub.docker.com/", credentialsId: 'dockerhub_credentials') {
             image.push("${git_hash}")
           }
         }
