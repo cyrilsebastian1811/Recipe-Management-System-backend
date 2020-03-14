@@ -101,7 +101,7 @@ const authorizeMiddleware = async (req, res, next) => {
 }
 
 const createUser = async (request, response) => {
-    logger.info(`Create user with request body ${JSON.stringify(request.body)}`);
+    // logger.info(`Create user with request body ${JSON.stringify(request.body)}`);
 
     const email = request.body.email;
     const firstname = request.body.firstname;
@@ -160,7 +160,7 @@ const getUserDetails = async (req, res) => {
 }
 
 const updateUserDetails = async (req, res) => {
-    logger.info(`update user details for ${res.locals.email} with request body ${JSON.stringify(req.body)}`);
+    // logger.info(`update user details for ${res.locals.email} with request body ${JSON.stringify(req.body)}`);
     const email = res.locals.email;
 
     const schema = {
@@ -207,7 +207,7 @@ const updateUserDetails = async (req, res) => {
 const createRecipe = async (req, res) => {
     const email = res.locals.email;
 
-    logger.info(`Create recipe request with body ${JSON.stringify(req.body)}`);
+    // logger.info(`Create recipe request with body ${JSON.stringify(req.body)}`);
 
     const stepsSchema = Joi.object().keys({
         position: Joi.number().min(1).required(),
@@ -431,7 +431,7 @@ const updateRecipe = async (req, res) => {
     const email = res.locals.email;
     const id = req.params.id;
 
-    logger.info(`Update recipe ${id} with body ${JSON.stringify(req.body)}`);
+    // logger.info(`Update recipe ${id} with body ${JSON.stringify(req.body)}`);
 
     const stepsSchema = Joi.object().keys({
         position: Joi.number().min(1).required(),
