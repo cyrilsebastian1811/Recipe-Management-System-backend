@@ -1,31 +1,31 @@
 pipeline {
   environment {
     // Credentials Parameters
-    DOCKERHUB_CREDENTIALS = credentials('dockerhub_credentials')
-    DB_CREDENTIALS = credentials('db_credentials')
+    // DOCKERHUB_CREDENTIALS = credentials('dockerhub_credentials')
+    // DB_CREDENTIALS = credentials('db_credentials')
 
-    // String Parameters
-    GIT_URL = "${env.GIT_URL}"
-    GIT_BRANCH = "${env.GIT_BRANCH}"
-    HELM_CHART_GIT_URL = "${env.HELM_CHART_GIT_URL}"
-    HELM_CHART_GIT_BRANCH = "${env.HELM_CHART_GIT_BRANCH}"
-    REPOSITORY = "${env.REPOSITORY}"
-    S3_BUCKET_URL = "${env.S3_BUCKET_URL}"
-    RDS_ENDPOINT = "${env.RDS_ENDPOINT}"
-    KUBERNETES_API = "${env.KUBERNETES_API}"
+    // // String Parameters
+    // GIT_URL = "${env.GIT_URL}"
+    // GIT_BRANCH = "${env.GIT_BRANCH}"
+    // HELM_CHART_GIT_URL = "${env.HELM_CHART_GIT_URL}"
+    // HELM_CHART_GIT_BRANCH = "${env.HELM_CHART_GIT_BRANCH}"
+    // REPOSITORY = "${env.REPOSITORY}"
+    // S3_BUCKET_URL = "${env.S3_BUCKET_URL}"
+    // RDS_ENDPOINT = "${env.RDS_ENDPOINT}"
+    // KUBERNETES_API = "${env.KUBERNETES_API}"
 
-    // Password Parameters
-    AWS_ACCESS_KEY_ID = "${env.AWS_ACCESS_KEY_ID}"
-    AWS_SECRET_ACCESS_KEY = "${env.AWS_SECRET_ACCESS_KEY}"
-    REDIS_PSW = "${env.REDIS_PSW}"
+    // // Password Parameters
+    // AWS_ACCESS_KEY_ID = "${env.AWS_ACCESS_KEY_ID}"
+    // AWS_SECRET_ACCESS_KEY = "${env.AWS_SECRET_ACCESS_KEY}"
+    // REDIS_PSW = "${env.REDIS_PSW}"
     
-    // Default Parameters
-    image_name = null
-    git_hash = null
-    image = null
-    git_message = null
-    scope = null
-    nextVersion = null
+    // // Default Parameters
+    // image_name = null
+    // git_hash = null
+    // image = null
+    // git_message = null
+    // scope = null
+    // nextVersion = null
   }
   agent any
   options {
