@@ -43,3 +43,43 @@ SENTINEL_PORT = 26379
     c. Check 'GitHub hook trigger for GITScm polling' in 'Build Triggers'
     d. In 'Pipeline' choose Git and pass in the repository and credentials. 
 5. You can also manually build the project with parameters.
+
+
+## Jenkins
+
+### Plugins to be Installed
+1. GitHub Integration
+2. Kubernetes CLI
+3. Kubernetes
+4. SSH Agent
+5. Generic Webhook Trigger
+
+### Global Credentials
+1. dockerhub_credentials(type: Username and Password) --> Username: cyrilsebastian1811, Password: xxxxxxxxxx
+2. db_credentials(type: Username and Password) --> Username: team, Password: Qwerty123
+2. github-ssh(SSH) --> Username: github, Private Key(contents of cyril_work from local)
+3. kubernetes_credentials(Username and Password) --> Username: admin, Password: (~/.kube/config/users:password | base64 )
+
+#### Configure System
+1. Manage Jenkins -> Configure System -> Cloud -> Kubernetes:
+```
+Kubernetes server certificate key: (~/.kube/config/clusters:certificate-authority-data | base64decode )
+Credentials: kubernetes_credentials
+```
+2. Manage Jenkins -> Configure System -> Git plugin:
+```
+Global Config user.name Value: Jenkins
+```
+
+### Configuration for Pipeline
+#### Build Triggers
+1. Generic Webhook Trigger:
+```
+Token: Edxzaw1!
+```
+#### Strig Parameters
+1. GIT_URL --> git@github.com:cyrilsebastian1811/webapp-backend.git
+2. GIT_BRANCH --> a8
+3. HELM_CHART_GIT_URL --> git@github.com:cyrilsebastian1811/helm-charts.git
+4. HELM_CHART_GIT_BRANCH --> a8
+5. REPOSITORY --> cyrilsebastian1811/backend

@@ -6,6 +6,8 @@ const formidable = require('formidable');
 const redis = require("redis");
 const redisSentinel = require("redis-sentinel-client")
 const { promisify } = require("util");
+const { createLogger, format, transports } = require('winston');
+const promClient = require("prom-client");
 const saltRounds = 10;
 
 const db = require("./db");
@@ -13,8 +15,19 @@ const s3 = require("./s3");
 
 let redisClient = null;
 
+const logger = createLogger({
+    format: format.combine(
+        // format.timestamp(),
+        format.splat(),
+        format.simple()
+    ),
+   transports: [
+       new transports.Console()
+   ]
+});
+
 if(process.env.ENVIRONMENT === "production") {
-    console.log("Using redis-sentinel-client");
+    logger.info("Using redis-sentinel-client");
     redisClient = redisSentinel.createClient({
         host: process.env.REDIS_HOST,
         port: process.env.SENTINEL_PORT,
@@ -25,7 +38,7 @@ if(process.env.ENVIRONMENT === "production") {
         master_auth_pass: process.env.REDIS_PASSWORD
     });
 } else {
-    console.log("Using redis");
+    logger.info("Using redis");
     redisClient = redis.createClient({
         host: process.env.REDIS_HOST,
         port: process.env.REDIS_PORT,
@@ -37,9 +50,37 @@ const setRedisAsync = promisify(redisClient.set).bind(redisClient);
 const getRedisAsync = promisify(redisClient.get).bind(redisClient);
 const delRedisAsync = promisify(redisClient.del).bind(redisClient);
 
+// counters for all APIs
+const createRecipeCounter = new promClient.Counter({
+    name: 'create_recipe_counter',
+    help: 'Number of times create recipe API is called'
+});
+const getRecipeCounter = new promClient.Counter({
+    name: 'get_recipe_counter',
+    help: 'Number of times get recipe API is called'
+});
+const updateRecipeCounter = new promClient.Counter({
+    name: 'update_recipe_counter',
+    help: 'Number of times update recipe API is called'
+});
+const deleteRecipeCounter = new promClient.Counter({
+    name: 'delete_recipe_counter',
+    help: 'Number of times delete recipe API is called'
+});
+
+// Prometheus summary
+const databaseSummary = new promClient.Summary({
+    name: 'database_call_summary',
+    help: 'Summary of the duration of database call'
+});
+const redisSummary = new promClient.Summary({
+    name: 'redis_call_summary',
+    help: 'Summary of the duration of redis call'
+});
+
 
 redisClient.on("error", (err) => {
-    console.log(err);
+    logger.error(err);
 });
 
 const checkPassword = (password) => {
@@ -57,7 +98,7 @@ const checkPassword = (password) => {
 const checkEmail = (email) =>  (/[a-zA-Z0-9_\.\+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-\.]+/.test(email));
 
 const authorizeMiddleware = async (req, res, next) => {
-    console.info("checking for authentication");
+    // console.info("checking for authentication");
     const auth = req.get('Authorization');
 
     if(lodash.isEmpty(auth)) return res.sendStatus(401);
@@ -84,12 +125,12 @@ const authorizeMiddleware = async (req, res, next) => {
         return res.status(401).json("Unauthorized");
     }
 
-    console.info("authentication successful");
+    // console.info("authentication successful");
     next();
 }
 
 const createUser = async (request, response) => {
-    console.info(`Create user with request body ${JSON.stringify(request.body)}`);
+    logger.info(`Create user with request body ${JSON.stringify(request.body)}`);
 
     const email = request.body.email;
     const firstname = request.body.firstname;
@@ -120,7 +161,7 @@ const createUser = async (request, response) => {
 
     await db.createUser(createUserInput);
 
-    console.info("create user successful");
+    logger.info("create user successful");
 
     response.status(201).json({
         id: createUserInput.id,
@@ -148,7 +189,7 @@ const getUserDetails = async (req, res) => {
 }
 
 const updateUserDetails = async (req, res) => {
-    console.info(`update user details for ${res.locals.email} with request body ${JSON.stringify(req.body)}`);
+    logger.info(`update user details for ${res.locals.email} with request body ${JSON.stringify(req.body)}`);
     const email = res.locals.email;
 
     const schema = {
@@ -185,7 +226,7 @@ const updateUserDetails = async (req, res) => {
         account_updated: now,
     }
 
-    console.info(`user details updated`);
+    logger.info(`user details updated`);
 
     db.updateUserDetails(updateUserDetailsInput).then(() => {
         res.sendStatus(204);
@@ -194,6 +235,8 @@ const updateUserDetails = async (req, res) => {
 
 const createRecipe = async (req, res) => {
     const email = res.locals.email;
+
+    logger.info(`Create recipe request with body ${JSON.stringify(req.body)}`);
 
     const stepsSchema = Joi.object().keys({
         position: Joi.number().min(1).required(),
@@ -241,7 +284,9 @@ const createRecipe = async (req, res) => {
             ingredients: req.body.ingredients,
         }
 
+        const end = databaseSummary.startTimer();
         await db.createRecipe(recipeInput);
+        end();
 
         for(const step of req.body.steps) {
             const stepInput = {
@@ -262,12 +307,17 @@ const createRecipe = async (req, res) => {
 
         await db.createRecipeNutritionInformation(nutritionInput);
 
+        logger.info(`Create recipe successful. Recipe id ${recipeInput.id}`);
+        createRecipeCounter.inc();
+
         // add to redis cache for 10 minutes
+        const redisEnd = redisSummary.startTimer();
         await setRedisAsync(recipeInput.id, JSON.stringify({
             ...recipeInput,
             steps: req.body.steps,
             nutrition_information: req.body.nutrition_information
         }), "EX", 60 * 10);
+        redisEnd();
 
         res.status(201).send({
             ...recipeInput,
@@ -275,7 +325,7 @@ const createRecipe = async (req, res) => {
             nutrition_information: req.body.nutrition_information,
         });
     } catch(err) {
-        console.log(err);
+        logger.error(err);
         res.sendStatus(500);
     }
 }
@@ -347,7 +397,11 @@ const getAllRecipes = async (req, res) => {
 const getRecipeDetails = async (req, res) => {
     const id = req.params.id;
 
+    logger.info(`Fetch recipe for id ${id}`);
+
+    const redisEnd = redisSummary.startTimer();
     const cachedRecipe = await getRedisAsync(id);
+    redisEnd();
     const {rows: imageDetails} = await db.getAllImagesForRecipe(id);
     if(cachedRecipe !== null) {
         const responseObject = JSON.parse(cachedRecipe);
@@ -361,7 +415,10 @@ const getRecipeDetails = async (req, res) => {
         });
     }
 
+    const end = databaseSummary.startTimer();
     const {rows: recipeDetails} = await db.getRecipeDetails(id);
+    end();
+
     const {rows: recipeSteps} = await db.getRecipeSteps(id);
     const {rows: recipeNutritionInformation} = await db.getRecipeNutritionInformation(id);
 
@@ -395,9 +452,13 @@ const getRecipeDetails = async (req, res) => {
     };
 
     if(cachedRecipe == null) {
+        const setEnd = redisSummary.startTimer();
         await setRedisAsync(id, JSON.stringify(recipeObject), "EX", 60 * 10);
+        setEnd();
     }
 
+    logger.info(`Fetch recipe successful`);
+    getRecipeCounter.inc();
 
     res.status(200).send({
         image: !lodash.isEmpty(imageDetails) && imageDetails.length > 0 ? {
@@ -411,6 +472,8 @@ const getRecipeDetails = async (req, res) => {
 const updateRecipe = async (req, res) => {
     const email = res.locals.email;
     const id = req.params.id;
+
+    logger.info(`Update recipe ${id} with body ${JSON.stringify(req.body)}`);
 
     const stepsSchema = Joi.object().keys({
         position: Joi.number().min(1).required(),
@@ -441,6 +504,7 @@ const updateRecipe = async (req, res) => {
     };
 
     const {rows: [user]} = await db.getUserDetails(email);
+
     const {rows: recipeDetails} = await db.getRecipeDetails(id);
 
     if(lodash.isEmpty(recipeDetails)) return res.status(404).json("Not Found");
@@ -476,8 +540,12 @@ const updateRecipe = async (req, res) => {
         cuisine: newCuisine,
         servings: newServings,
         ingredients: newIngredients
-    }
+    };
+
+    // time the call to update the recipe
+    const end = databaseSummary.startTimer();
     await db.updateRecipe(updateRecipeInput, id);
+    end();
 
     if(req.body.steps) {
         await db.deleteRecipeOldSteps(id);
@@ -512,29 +580,40 @@ const updateRecipe = async (req, res) => {
     };
 
     // set cache with the updated recipe
+    const redisEnd = redisSummary.startTimer();
     setRedisAsync(id, JSON.stringify(updatedRecipeObject), "EX", 60 * 10);
+    redisEnd();
+
+    logger.info(`Update recipe successful for id ${id}`);
+    updateRecipeCounter.inc();
 
     res.status(200).send(updatedRecipeObject);
-}
+};
 
 const deleteRecipe = async (req, res) => {
     const email = res.locals.email;
     const recipeId = req.params.id;
 
+    logger.info(`Delete recipe with id ${recipeId}`);
+
     const {rows: [user]} = await db.getUserDetails(email);
 
     const {rows: recipeDetails} = await db.getRecipeDetails(recipeId);
 
-    const {rows: imageDetails} = await db.getAllImagesForRecipe(recipeId)
+    const {rows: imageDetails} = await db.getAllImagesForRecipe(recipeId);
 
     if(lodash.isEmpty(recipeDetails)) return res.sendStatus(404);
 
     if(user.id !== recipeDetails[0].author_id) return res.sendStatus(401);
 
     try {
+        const redisEnd = redisSummary.startTimer();
         await delRedisAsync(recipeId);
+        redisEnd();
 
+        const end = databaseSummary.startTimer();
         await db.deleteRecipe(recipeId);
+        end();
 
         if(!lodash.isEmpty(imageDetails) && imageDetails.length > 0) {
             await Promise.all(imageDetails.map(async ({ url }) => {
@@ -545,12 +624,14 @@ const deleteRecipe = async (req, res) => {
         }
 
     } catch(err) {
-        console.log(err);
+        logger.error(err);
         return res.sendStatus(500);
     }
 
+    logger.info("Delete recipe successful");
+    deleteRecipeCounter.inc();
     res.sendStatus(204);
-}
+};
 
 const createImage = async (req, res) => {
     const email = res.locals.email;
@@ -567,7 +648,7 @@ const createImage = async (req, res) => {
 
     new formidable.IncomingForm().parse(req, async (err, fields, files) => {
         if (err) {
-            console.error('Error', err)
+            logger.error('Error', err)
             throw err
         }
 
@@ -591,7 +672,7 @@ const createImage = async (req, res) => {
                     url: s3Data.Location,
                 });
             }  catch(err) {
-                console.error(err);
+                logger.error(err);
                 return res.status(400).json(err);
             }
         }
@@ -632,7 +713,7 @@ const deleteRecipeImage = async (req,res) => {
 
         return res.status(204).json("No Content");
     } catch (err) {
-        console.log(err);
+        logger.error(err);
         return res.status(400).json("Bad Request");
     }
 }
@@ -648,7 +729,14 @@ const testCache = async (req, res) => {
        key: key,
        value: cachedValue
     });
-}
+};
+
+const getMetrics = (req, res) => {
+    res.set('Content-Type', promClient.register.contentType);
+    res.end(promClient.register.metrics());
+};
+
+promClient.collectDefaultMetrics();
 
 
 module.exports = {
@@ -666,6 +754,7 @@ module.exports = {
     deleteRecipeImage,
     getImage,
     testCache,
+    getMetrics
 };
 
 
