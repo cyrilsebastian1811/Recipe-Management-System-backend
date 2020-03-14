@@ -39,7 +39,8 @@ if(process.env.ENVIRONMENT === "production") {
         master_auth_pass: process.env.REDIS_PASSWORD
     });
 } else {
-    logger.log({level: "info", message: "Using redis"});
+    logger.info("Using redis");
+    // logger.log({level: "info", message: "Using redis"});
     redisClient = redis.createClient({
         host: process.env.REDIS_HOST,
         port: process.env.REDIS_PORT,
